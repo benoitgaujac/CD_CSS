@@ -54,8 +54,8 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
     dataset.load()
     for k in ("train", "valid", "test"):
         # s = np.random.rand(*dataset.data[k][0].shape)
-        dataset.data[k] = ((0.5 < dataset.data[k][0][:num_data]).astype("float32"),
-                                                             dataset.data[k][1][:num_data])
+        dataset.data[k] = ((0.5 < dataset.data[k][0][:size_data]).astype("float32"),
+                                                             dataset.data[k][1][:size_data])
     # Input tensor
     X = T.fmatrix()
 
