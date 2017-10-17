@@ -3,7 +3,7 @@ import pdb
 import time
 from argparse import ArgumentParser
 from collections import OrderedDict
-from matplotlib import pyplot as plt
+#from matplotlib import pyplot as plt
 
 import sys
 DATA_PATH = "../data-sets"
