@@ -36,7 +36,7 @@ RESULTS_DIR = "./results" # Path to results
 num_data = 100
 
 ######################################## Models architectures ########################################
-FC_net = {"hidden":2,"nhidden_0":D,"nhidden_1":800,"nhidden_2":800,"nhidden_3":2048,"noutput":1}
+FC_net = {"hidden":3,"nhidden_0":D,"nhidden_1":1024,"nhidden_2":2048,"nhidden_3":2048,"noutput":1}
 
 ######################################## Main ########################################
 def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy_type='boltzman', archi=None, sampling_method='gibbs'):
