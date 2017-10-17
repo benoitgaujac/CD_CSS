@@ -1,7 +1,7 @@
 import os
 import pdb
 import time
-import argparse
+from argparse import ArgumentParser
 from collections import OrderedDict
 from matplotlib import pyplot as plt
 
@@ -27,7 +27,7 @@ IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
 BATCH_SIZE = 50 # batch size
 NUM_EPOCH = 10
-LOG_FREQ = 2
+LOG_FREQ = 10
 LR = 0.001
 PARAMS_DIR = "./trained_models" # Path to parameters
 RESULTS_DIR = "./results" # Path to results
@@ -39,7 +39,7 @@ num_data = 100
 FC_net = {"hidden":2,"nhidden_0":D,"nhidden_1":800,"nhidden_2":800,"nhidden_3":2048,"noutput":1}
 
 ######################################## Main ########################################
-def main(batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='boltzman', archi=None, sampling_method='gibbs'):
+def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy_type='boltzman', archi=None, sampling_method='gibbs'):
     # Create directories
     if not os.path.exists(PARAMS_DIR):
         os.makedirs(PARAMS_DIR)
@@ -105,13 +105,31 @@ def main(batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='boltzman', ar
 
 
 if __name__ == "__main__":
+
+    parser = ArgumentParser()
+    parser.add_argument("--batch_size", "-b", action='store', dest="BATCH_SIZE",type=int, default=100)
+    parser.add_argument("--num_epochs", "-e", action='store', dest="NUM_EPOCH", type=int, default=100)
+    parser.add_argument("--num_data", action='store', dest="num_data", type=int, default=-1)
+    parser.add_argument("--energy", action='store', dest="energy", type=str, default='boltzman')
+    parser.add_argument("--sampling", action='store', dest="sampling", type=str, default='gibbs')
+
+    options = parser.parse_args()
+    main(batch_size=options.BATCH_SIZE,
+            size_data=options.num_data,
+            num_epochs=options.NUM_EPOCH,
+            energy_type=options.energy,
+            archi=FC_net,
+            sampling_method=options.sampling)
+
+
+    """
     ene = ['boltzman', "nnet"]
     samp = ['gibbs', 'naive_taylor']
     for energy in ene:
         for sampling in samp:
             main(batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type=energy, archi=FC_net, sampling_method=sampling)
     """
+    """
     TO DO:
     -number of sample per data point S
-    -argparse.ArgumentParser
     """
