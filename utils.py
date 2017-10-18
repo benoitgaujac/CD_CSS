@@ -10,7 +10,7 @@ import datetime
 from six.moves import cPickle
 
 
-######## Save/load params ########
+######################################## Save/load params ########################################
 def save_params(params, filename, date_time=True):
     if date_time:
         filename = filename + datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
@@ -18,29 +18,37 @@ def save_params(params, filename, date_time=True):
         for param in params:
             cPickle.dump(param, f, protocol=cPickle.HIGHEST_PROTOCOL)
 
-
-######## Energy ########
+######################################## Energy ########################################
 def build_energy(x,energy_type='boltzman',archi=None):
     """
     Build the ennergy function of our model. Return the output of the energy, the params and the enrgy function.
     -x:             Input
-    -energy_type:   Energy function used (either boltzman or nnet)
-    -archi:         NNet architecture (None for boltzman)
+    -energy_type:   Energy function used
+    -archi:         net architecture (None for boltzman)
     """
     D = x.shape[1]
     # Initialize params
-    params = init_params(architecture=archi,energy_type=energy_type)
     if energy_type=='boltzman':
-        l_out = botlmzan_energy(x,params["W"])
-        energy = partial(botlmzan_energy,W=params["W"])
-        list_params = [params["W"]]
-    elif energy_type=='nnet':
-        l_out = build_net(archi,params)
-        energy = partial(net_energy,l_out=l_out)
-        list_params = lg.layers.get_all_params(l_out)
+        W = init_BM_params(archi)
+        params = [W]
+        l_out = botlmzan_energy(x,W)
+        energy = partial(botlmzan_energy,W=W)
+    elif energy_type=='FC_net' or energy_type=='CONV_net':
+        l_out = build_net(archi, energy_type)
+        params = lg.layers.get_all_params(l_out)
+        energy = partial(net_energy,l_out=l_out,energy_type=energy_type,im_resize=archi["nhidden_0"])
     else:
-        raise ValueError("Incorrect Energy. Not nnet or boltzman.")
-    return l_out, list_params, energy
+        raise ValueError("Incorrect Energy. Not FC_net nor CONV_net.")
+    return l_out, params, energy
+
+def init_BM_params(archi):
+    """
+    Initialize BN parameters
+    """
+    W = np.random.randn(archi["nhidden_0"], archi["nhidden_0"]) * 1e-8
+    W = 0.5 * (W + W.T)
+    W = theano.shared(W.astype(dtype='float64'), name="W")
+    return W
 
 def botlmzan_energy(x, W):
     """
@@ -48,42 +56,68 @@ def botlmzan_energy(x, W):
     """
     return T.sum(T.dot(x, W) * x, axis=1)
 
-def net_energy(x, l_out):
+def build_net(architecture, energy_type='FC_net'):
+    """
+    Takes in a list of layer widths and returns the last layer
+    of a feed-forward net that has those dimensions with an extra
+    linear layer of width 1 at the end.
+    """
+    if energy_type=='FC_net':
+        l = lg.layers.InputLayer(shape=[None, architecture["nhidden_0"]])
+        for i in range(architecture["hidden"]):
+            l = lg.layers.DenseLayer(l, num_units=architecture["nhidden_"+str(i+1)],
+                                        W=lg.init.GlorotUniform(),
+                                        b=lg.init.Constant(0.),
+                                        nonlinearity=lg.nonlinearities.elu)
+        l_out = lg.layers.DenseLayer(l, num_units=architecture["noutput"],
+                                        W=lg.init.GlorotUniform(),
+                                        b=lg.init.Constant(0.),
+                                        nonlinearity=lg.nonlinearities.linear)
+    elif energy_type=='CONV_net':
+        l = lg.layers.InputLayer(shape=[None, 1, architecture["nhidden_0"], architecture["nhidden_0"]],dtype='float64')
+        ## Convolutional layers
+        for i in range(architecture["conv"]):
+            l = lg.layers.Conv2DLayer(l, num_filters=2^i*architecture["num_filters"],
+                                        filter_size=architecture["filter_size"],
+                                        W=lg.init.GlorotUniform(),
+                                        b=lg.init.Constant(0.),
+                                        nonlinearity=lg.nonlinearities.elu)
+            l = lg.layers.MaxPool2DLayer(l, pool_size=(2, 2))
+        ## Dense layer
+        l = lg.layers.DenseLayer(l, num_units=architecture["FC_units"],
+                                    W=lg.init.GlorotUniform(),
+                                    b=lg.init.Constant(0.),
+                                    nonlinearity=lg.nonlinearities.elu)
+        ## Dropout
+        l = lg.layers.dropout(l, p=.5)
+        ## output
+        l_out = lg.layers.DenseLayer(l, num_units=architecture["noutput"],
+                                        W=lg.init.GlorotUniform(),
+                                        b=lg.init.Constant(0.),
+                                        nonlinearity=lg.nonlinearities.linear)
+
+
+    return l_out
+
+def net_energy(x, l_out, energy_type, im_resize=None):
     """
         The energy function for the NNET
         l_out - lasagne layer
         x - theano.tensor.matrix
     """
+    if energy_type=='CONV_net':
+        x = T.reshape(x, (-1,1,im_resize,im_resize))
     return lg.layers.get_output(l_out, x)
 
-def build_net(architecture,params):
-    """
-    Takes in a list of layer widths and parameters and returns the last lasagne
-    layer of a feed-forward net that has those dimensions with an
-    extra linear layer of width 1 at the end.
-    """
-    l = lg.layers.InputLayer(shape=[None, architecture["nhidden_0"]])
-    for i in range(architecture["hidden"]):
-        l = lg.layers.DenseLayer(l, num_units=architecture["nhidden_"+str(i+1)],
-                                    W=params["W"+str(i)],
-                                    b=params["b"+str(i)],
-                                    nonlinearity=lg.nonlinearities.elu)
-    l_out = lg.layers.DenseLayer(l, num_units=architecture["noutput"],
-                                    W=params["W"+str(i+1)],
-                                    b=params["b"+str(i+1)],
-                                    nonlinearity=lg.nonlinearities.linear)
-    return l_out
-
+"""
 def init_params(architecture,energy_type="boltzman"):
-    """
-    Initialize models parameters
-    """
+    #Initialize models parameters
     if energy_type == "boltzman":
         W = np.random.randn(architecture["nhidden_0"], architecture["nhidden_0"]) * 1e-8
         W = 0.5 * (W + W.T)
         W = theano.shared(W.astype(theano.config.floatX), name="W")
-        return {"W":W}
-    elif energy_type == "nnet":
+        params =  {"W":W}
+    elif energy_type == "FC_net":
         params = {}
         for i in range(architecture["hidden"]):
             W = lg.init.GlorotNormal()(shape=(architecture["nhidden_"+str(i)], architecture["nhidden_"+str(i+1)]))
@@ -94,11 +128,28 @@ def init_params(architecture,energy_type="boltzman"):
         b = np.zeros(architecture["noutput"])
         params["W"+str(i+1)] = theano.shared(W.astype(theano.config.floatX))
         params["b"+str(i+1)] = theano.shared(b.astype(theano.config.floatX))
+    elif energy_type == "CONV_net":
+        params = {}
+        W = lg.init.GlorotNormal()(shape=(architecture["num_filter"], 1, architecture["size_filter"],architecture["size_filter"]))
+        b = lg.init.GlorotNormal()(shape=(architecture["num_filter"]))
+        params["W0"] = theano.shared(W.astype(theano.config.floatX))
+        params["b0"] = theano.shared(b.astype(theano.config.floatX))
+        for i in range(architecture["conv"]-1):
+            W = lg.init.GlorotNormal()(shape=(2^(i+1)*architecture["num_filter"], 2^i*architecture["num_filter"], architecture["size_filter"],architecture["size_filter"]))
+            b = lg.init.GlorotNormal()(shape=(2^(i+1)*architecture["num_filter"]))
+            params["W"+str(i+1)] = theano.shared(W.astype(theano.config.floatX))
+            params["b"+str(i+1)] = theano.shared(b.astype(theano.config.floatX))
+        W = lg.init.GlorotNormal()(shape=(architecture["nhidden_"+str(i+1)], architecture["noutput"]))
+        b = np.zeros(architecture["noutput"])
+        params["W"+str(i+1)] = theano.shared(W.astype(theano.config.floatX))
+        params["b"+str(i+1)] = theano.shared(b.astype(theano.config.floatX))
+    else:
+        raise ValueError("Incorrect net type. Not FC_net nor CONV_net.")
 
-        return params
+    return params
+"""
 
-
-######## Sampling ########
+######################################## Sampling ########################################
 def sampler(x, energy, E_data, num_steps, params, sampling_method, srng):
     """
     Sampler for MC approximation of the energy. Return samples.
@@ -158,11 +209,12 @@ def build_taylor_q(X, E_data, srng):
     pvals = T.nnet.softmax(E_data.reshape((1, -1)))
     pvals = T.repeat(pvals, X.shape[0], axis=0)
     pi = T.argmax(srng.multinomial(pvals=pvals,
-                                   dtype=theano.config.floatX), axis=1)
+                                   dtype='float64'), axis=1)
+    #pdb.set_trace()
     q = T.nnet.sigmoid(T.grad(T.sum(E_data), X)[pi])
     return q
 
-def binary_sample(size, p=0.5, dtype=theano.config.floatX, srng=None):
+def binary_sample(size, p=0.5, dtype='float64', srng=None):
     """
     Samples binary data
     """
