@@ -91,6 +91,8 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
                     acc, recon = test_func(x_test)
                     test_acc += acc
                     n += 1
+                    if n==50:
+                        break
                 test_acc = test_acc/float(n)
                 if test_acc>best_acc:
                     best_acc = test_acc
