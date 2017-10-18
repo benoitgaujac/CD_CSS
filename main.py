@@ -37,7 +37,8 @@ num_data = 100
 
 ######################################## Models architectures ########################################
 FC_net = {"hidden":3,"nhidden_0":D,"nhidden_1":1024,"nhidden_2":2048,"nhidden_3":2048,"noutput":1}
-
+CONV_net = {"conv":2,"nhidden_0":IM_SIZE,"filter_size":5,"num_filters":32,"FC_units":1024,"noutput":1}
+arch = {"FC_net":FC_net, "CONV_net":CONV_net, "boltzman":FC_net}
 ######################################## Main ########################################
 def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy_type='boltzman', archi=None, sampling_method='gibbs'):
     # Create directories
@@ -53,11 +54,11 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
     dataset = get_dataset("mnist")
     dataset.load()
     for k in ("train", "valid", "test"):
-        # s = np.random.rand(*dataset.data[k][0].shape)
-        dataset.data[k] = ((0.5 < dataset.data[k][0][:size_data]).astype("float32"),
-                                                             dataset.data[k][1][:size_data])
+        dataset.data[k] = ((0.5 < dataset.data[k][0][:size_data]).astype("float64"),
+                                                    dataset.data[k][1][:size_data])
+
     # Input tensor
-    X = T.fmatrix()
+    X = T.matrix()
 
     # Build Model
     print("compiling model " + energy_type + " with " + sampling_method + " sampling...")
@@ -71,11 +72,13 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
 
     # Training loop
     print("starting training...")
-    test_accuracy = np.zeros(num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1)
-    recons = np.zeros((num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1, D))
+    test_accuracy   = np.zeros(num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1)
+    train_loss      = np.zeros(num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1)
+    time_ite        = np.zeros(num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1)
+    recons          = np.zeros((num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1, D))
     #test_accuracy = np.zeros(num_epochs//LOG_FREQ+1)
     #recons = np.zeros((num_epochs//LOG_FREQ+1, D))
-    i, s = 0, time.time()
+    i, s = 0, time.time() #counter for iteration, time
     best_acc, best_loss = 0.0, -100.0
     for epoch in range(num_epochs):
         for x, y in dataset.iter("train", batch_size):
@@ -83,25 +86,39 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
             if loss>best_loss:
                 best_loss = float(loss)
             if i%LOG_FREQ==0:
-                test_acc, recon = test_func(x)
-                test_accuracy[i//LOG_FREQ] = test_acc
-                recons[i//LOG_FREQ] = recon[0]
+                test_acc, n = 0.0, 0 #test_acc, counter for test
+                for x_test, y_test in dataset.iter("train", batch_size):
+                    acc, recon = test_func(x_test)
+                    test_acc += acc
+                    n += 1
+                test_acc = test_acc/float(n)
                 if test_acc>best_acc:
                     best_acc = test_acc
+                    """
+                    Save params
                     if energy_type=='boltzman':
                         save_params([W.get_value() for W in params], checkpoint_file+"_"+str(epoch)+"_")
-                    elif energy_type=='nnet':
+                    elif energy_type=='net':
                         save_params(lg.layers.get_all_param_values(l_out), checkpoint_file+"_"+str(epoch)+"_")
                     else:
-                        raise ValueError("Incorrect Energy. Not nnet or boltzman.")
-                print("[{:.3f}s]iteration {}".format(time.time() - s, i+1))
+                        raise ValueError("Incorrect Energy. Not net or boltzman.")
+                    """
+                # Store info
+                test_accuracy[(i)//LOG_FREQ] = test_acc #average test acc over batch
+                recons[(i)//LOG_FREQ] = recon[0]
+                train_loss[(i)//LOG_FREQ] = loss
+                ti = time.time() - s
+                time_ite[(i)//LOG_FREQ] = ti
+                np.savetxt(result_file + '_test.txt', test_accuracy)
+                np.savetxt(result_file + '_recon.txt', recons)
+                np.savetxt(result_file + '_loss.txt', train_loss)
+                np.savetxt(result_file + '_time.txt', time_ite)
+                # log info
+                print("[{:.3f}s]iteration {}".format(ti, i+1))
                 print("loss: {:.5f}, best loss: {:.5f}".format(float(loss),best_loss))
                 print("test acc: {:.5f}%, best acc: {:.5f}%".format(100.0*test_acc,100.0*best_acc))
+                s = time.time()
             i += 1
-            s = time.time()
-
-    np.savetxt(result_file + '_test.txt', test_accuracy)
-    np.savetxt(result_file + '_recon.txt', recons)
 
 
 if __name__ == "__main__":
@@ -112,24 +129,26 @@ if __name__ == "__main__":
     parser.add_argument("--num_data", action='store', dest="num_data", type=int, default=-1)
     parser.add_argument("--energy", action='store', dest="energy", type=str, default='boltzman')
     parser.add_argument("--sampling", action='store', dest="sampling", type=str, default='gibbs')
-
     options = parser.parse_args()
+
+    """
     main(batch_size=options.BATCH_SIZE,
             size_data=options.num_data,
             num_epochs=options.NUM_EPOCH,
             energy_type=options.energy,
-            archi=FC_net,
+            archi=arch[options.energy],
             sampling_method=options.sampling)
 
 
     """
-    ene = ['boltzman', "nnet"]
+    ene = ["boltzman", "FC_net"]
     samp = ['gibbs', 'naive_taylor']
-    for energy in ene:
-        for sampling in samp:
-            main(batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type=energy, archi=FC_net, sampling_method=sampling)
-    """
-    """
-    TO DO:
-    -number of sample per data point S
+    for energ in ene:
+        for sampl in samp:
+            main(batch_size=options.BATCH_SIZE,
+                    size_data=options.num_data,
+                    num_epochs=options.NUM_EPOCH,
+                    energy_type=energ,
+                    archi=arch[energ],
+                    sampling_method=sampl)
     """
