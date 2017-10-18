@@ -27,7 +27,7 @@ IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
 BATCH_SIZE = 50 # batch size
 NUM_EPOCH = 10
-LOG_FREQ = 10
+LOG_FREQ = 100
 LR = 0.001
 PARAMS_DIR = "./trained_models" # Path to parameters
 RESULTS_DIR = "./results" # Path to results
@@ -141,8 +141,8 @@ if __name__ == "__main__":
 
 
     """
-    ene = ['FC_net','boltzman']
-    samp = ['gibbs', 'naive_taylor']
+    ene = ['boltzman','FC_net']
+    samp = ['naive_taylor','gibbs']
     for energ in ene:
         for sampl in samp:
             main(batch_size=options.BATCH_SIZE,
