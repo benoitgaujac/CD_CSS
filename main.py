@@ -27,7 +27,7 @@ IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
 BATCH_SIZE = 50 # batch size
 NUM_EPOCH = 10
-LOG_FREQ = 100
+LOG_FREQ = 1
 LR = 0.001
 PARAMS_DIR = "./trained_models" # Path to parameters
 RESULTS_DIR = "./results" # Path to results
@@ -87,7 +87,7 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
                 best_loss = float(loss)
             if i%LOG_FREQ==0:
                 test_acc, n = 0.0, 0 #test_acc, counter for test
-                for x_test, y_test in dataset.iter("train", batch_size):
+                for x_test, y_test in dataset.iter("test", batch_size):
                     acc, recon = test_func(x_test)
                     test_acc += acc
                     n += 1
@@ -130,7 +130,6 @@ if __name__ == "__main__":
     parser.add_argument("--energy", action='store', dest="energy", type=str, default='boltzman')
     parser.add_argument("--sampling", action='store', dest="sampling", type=str, default='gibbs')
     options = parser.parse_args()
-
     """
     main(batch_size=options.BATCH_SIZE,
             size_data=options.num_data,
@@ -141,7 +140,7 @@ if __name__ == "__main__":
 
 
     """
-    ene = ['boltzman','FC_net']
+    ene = ['FC_net','boltzman']
     samp = ['naive_taylor','gibbs']
     for energ in ene:
         for sampl in samp:
