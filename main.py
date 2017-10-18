@@ -141,7 +141,7 @@ if __name__ == "__main__":
 
 
     """
-    ene = ["boltzman", "FC_net"]
+    ene = ['FC_net','boltzman']
     samp = ['gibbs', 'naive_taylor']
     for energ in ene:
         for sampl in samp:
