@@ -54,7 +54,7 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
     dataset = get_dataset("mnist")
     dataset.load()
     for k in ("train", "valid", "test"):
-        dataset.data[k] = ((0.5 < dataset.data[k][0][:size_data]).astype("float64"),
+        dataset.data[k] = ((0.5 < dataset.data[k][0][:size_data]).astype(theano.config.floatX),
                                                     dataset.data[k][1][:size_data])
 
     # Input tensor
@@ -151,4 +151,3 @@ if __name__ == "__main__":
                     energy_type=energ,
                     archi=arch[energ],
                     sampling_method=sampl)
-    """
