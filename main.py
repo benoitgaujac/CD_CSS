@@ -62,7 +62,7 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
 
     # Build Model
     print("compiling model " + energy_type + " with " + sampling_method + " sampling for " + obj_fct + "objective...")
-    train_func, test_func, l_out, params = build_model(X, obj_fct="CD",
+    train_func, test_func, l_out, params = build_model(X, obj_fct=obj_fct,
                                                 num_steps_MC=CD_STEPS,
                                                 sampling_method=sampling_method,
                                                 energy_type=energy_type,
@@ -78,8 +78,6 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
     train_z2      = np.zeros(num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1)
     time_ite        = np.zeros(num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1)
     recons          = np.zeros((num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1, D))
-    #test_accuracy = np.zeros(num_epochs//LOG_FREQ+1)
-    #recons = np.zeros((num_epochs//LOG_FREQ+1, D))
     i, s = 0, time.time() #counter for iteration, time
     best_acc, best_loss = 0.0, -100.0
     for epoch in range(num_epochs):
@@ -118,6 +116,8 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
                 np.savetxt(result_file + '_test.txt', test_accuracy)
                 np.savetxt(result_file + '_recon.txt', recons)
                 np.savetxt(result_file + '_loss.txt', train_loss)
+                np.savetxt(result_file + '_z1.txt', train_z1)
+                np.savetxt(result_file + '_z2.txt', train_z2)
                 np.savetxt(result_file + '_time.txt', time_ite)
                 # log info
                 print("[{:.3f}s]iteration {}".format(ti, i+1))
@@ -147,9 +147,9 @@ if __name__ == "__main__":
             sampling_method=options.sampling,
             obj_fct=options.obj)
     """
-    objectives = ['CSS','CD']
+    objectives = ['CSS',]
     ene = ['boltzman','FC_net','CONV_net']
-    samp = ['naive_taylor','gibbs']
+    samp = ['naive_taylor',]
     for ob in objectives:
         for energ in ene:
             for sampl in samp:

@@ -55,7 +55,7 @@ def botlmzan_energy(x, W):
     """
     The energy function for the Boltzman machine
     """
-    return T.sum(T.dot(x, W) * x, axis=1)
+    return T.sum(T.dot(x, W) * x, axis=1,keepdims=True)
 
 def build_net(architecture, energy_type='FC_net'):
     """
@@ -202,7 +202,7 @@ def gibbs_sample(X, energy, num_steps, params, srng):
         q_samples = result[0][-1]
         q = result[1].T
         q = q * (1.0 - 2*eps) + eps
-        logq = - T.sum(T.nnet.binary_crossentropy(q, X[:,shuffled]), axis=1)
+        logq = - T.sum(T.nnet.binary_crossentropy(q, X[shuffled]), axis=1,keepdims=True)
     return q_samples, logq, updates
 
 def taylor_sample(X, E_data, srng):
@@ -213,7 +213,7 @@ def taylor_sample(X, E_data, srng):
     q_sample = binary_sample(q.shape, q, srng=srng)
     # Calculate log[q(q_sample)]
     q = q * (1.0 - 2*eps) + eps
-    log_q = - T.sum(T.nnet.binary_crossentropy(q, q_sample), axis=1)
+    log_q = - T.sum(T.nnet.binary_crossentropy(q, q_sample), axis=1,keepdims=True)
     # Return the objective
     return q_sample, log_q, {}
 
@@ -294,4 +294,4 @@ def css_objective(true_x, q_sample, log_q, energy, approx_grad=True, css=True):
         logsumexp = T.log(T.sum(T.exp(e_p - m), axis=0)) + m
     else:
         logsumexp = T.log(T.sum(T.exp(e_q - m_q), axis=0)) + m_q
-    return T.mean(e_x) - logsumexp, z1, z2
+    return T.mean(e_x) - logsumexp[0], z1, z2
