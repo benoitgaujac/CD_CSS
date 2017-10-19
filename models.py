@@ -33,7 +33,6 @@ def build_model(X, obj_fct, sampling_method, alpha,
     E_data = energy(X)
     # Sampling from Q
     samples, log_q, updts = u.sampler(X, energy, E_data, num_steps_MC, params, sampling_method, srng)
-    log_q = zero_grad(log_q)
 
     # Build loss function & updates dictionary
     loss, z1, z2 = u.objectives(X,samples,log_q,energy,obj_fct)
