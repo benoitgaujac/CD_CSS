@@ -132,6 +132,8 @@ if __name__ == "__main__":
     parser.add_argument("--energy", action='store', dest="energy", type=str, default='boltzman')
     parser.add_argument("--sampling", action='store', dest="sampling", type=str, default='gibbs')
     options = parser.parse_args()
+
+    """
     main(batch_size=options.BATCH_SIZE,
             size_data=options.num_data,
             num_epochs=options.NUM_EPOCH,
@@ -141,7 +143,7 @@ if __name__ == "__main__":
 
 
     """
-    ene = ['FC_net','boltzman']
+    ene = ['CONV_net',]
     samp = ['naive_taylor','gibbs']
     for energ in ene:
         for sampl in samp:
@@ -152,4 +154,3 @@ if __name__ == "__main__":
                         energy_type=energ,
                         archi=arch[energ],
                         sampling_method=sampl)
-    """

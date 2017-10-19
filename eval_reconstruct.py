@@ -4,6 +4,7 @@ import theano.tensor as T
 
 from utils import binary_sample
 
+
 def reconstruct_images(true_x, num_steps, params, energy, srng, fraction=0.7, D=784):
     """
     Noises up fraction of each images and reconstructs it via axis aligned optimization
