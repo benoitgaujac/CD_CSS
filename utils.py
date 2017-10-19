@@ -9,6 +9,7 @@ from functools import partial
 import datetime
 from six.moves import cPickle
 
+eps=1e-6
 
 ######################################## Save/load params ########################################
 def save_params(params, filename, date_time=True):
@@ -108,7 +109,7 @@ def net_energy(x, l_out, energy_type, im_resize=None):
         x - theano.tensor.matrix
     """
     if energy_type=='CONV_net':
-        Xin = T.reshape(x, (-1,1,im_resize,im_resize),ndim=4)
+        Xin = T.reshape(x, (-1,1,im_resize,im_resize),ndim=4).astype(theano.config.floatX)
     else:
         Xin = x
     #pdb.set_trace()
@@ -166,17 +167,17 @@ def sampler(x, energy, E_data, num_steps, params, sampling_method, srng):
     -sampling_method:   Sampling method used for sampling (gibbs, taylor)
     """
     if sampling_method=="gibbs":
-        samples, updates = gibbs_sample(x, energy, num_steps, params, srng)
+        samples, logq, updates = gibbs_sample(x, energy, num_steps, params, srng)
     elif sampling_method=="naive_taylor":
-        samples, updates = taylor_sample(x, E_data, srng)
+        samples, logq, updates = taylor_sample(x, E_data, srng)
     else:
         raise ValueError("Incorrect sampling method. Not gibbs nor naive_taylor.")
 
-    return samples, updates
+    return samples, logq, updates
 
 def gibbs_sample(X, energy, num_steps, params, srng):
     """
-    Gibbs sampling
+    Gibbs sampling.
     """
     def gibbs_step(i, x, *args):
         "perform one step of gibbs sampling from the energy model for all N chains"
@@ -189,27 +190,36 @@ def gibbs_sample(X, energy, num_steps, params, srng):
         eng_zero = eng[x.shape[0]:]
         q = T.nnet.sigmoid(eng_one - eng_zero)
         samps = binary_sample(q.shape, q, srng=srng)
-        return T.set_subtensor(x_i, samps)
+        return T.set_subtensor(x_i, samps), q
 
     for i in range(num_steps):
         shuffle = srng.uniform(size=X.shape)
         shuffled = T.argsort(shuffle, axis=1)
         result, updates = theano.scan(fn=gibbs_step,
                                 sequences=shuffled.T,
-                                outputs_info=X,
+                                outputs_info=[X,None],
                                 non_sequences=params)
-    return result[-1], updates
+        q_samples = result[0][-1]
+        q = result[1].T
+        q = q * (1.0 - 2*eps) + eps
+        logq = - T.sum(T.nnet.binary_crossentropy(q, X[:,shuffled]), axis=1)
+    return q_samples, logq, updates
 
 def taylor_sample(X, E_data, srng):
     """
-    Sample from taylor expansion of the energy
+    Sample from taylor expansion of the energy.
     """
     q = build_taylor_q(X, E_data, srng)
-    return binary_sample(q.shape, q, srng=srng), {}
+    q_sample = binary_sample(q.shape, q, srng=srng)
+    # Calculate log[q(q_sample)]
+    q = q * (1.0 - 2*eps) + eps
+    log_q = - T.sum(T.nnet.binary_crossentropy(q, q_sample), axis=1)
+    # Return the objective
+    return q_sample, log_q, {}
 
 def build_taylor_q(X, E_data, srng):
     """
-    Build the taylor expansion of the energy
+    Build the taylor expansion of the energy.
     """
     pvals = T.nnet.softmax(E_data.reshape((1, -1)))
     pvals = T.repeat(pvals, X.shape[0], axis=0)
@@ -221,10 +231,67 @@ def build_taylor_q(X, E_data, srng):
 
 def binary_sample(size, p=0.5, dtype='float64', srng=None):
     """
-    Samples binary data
+    Samples binary data.
     """
     x = srng.uniform(size=size)
     x = zero_grad(x)
     if not isinstance(p, float):
         p = zero_grad(p)
     return T.cast(x < p, dtype)
+
+
+######################################## Objectives ########################################
+def objectives(true_x,q_sample,log_q,energy,obj_fct,approx_grad=True, css=True):
+    if obj_fct=='CD':
+        l, z1, z2 = cd_objective(true_x, q_sample, energy)
+    elif obj_fct=='CSS':
+        l, z1, z2 = css_objective(true_x, q_sample, log_q, energy, approx_grad, css)
+    else:
+        raise ValueError("Incorrect objective function. Not CD nor CSS.")
+
+    return l, z1, z2
+
+def cd_objective(true_x, q_sample, energy):
+    """
+    An objective whose gradient is equal to the CD gradient.
+    """
+    e_x = energy(true_x)
+    e_q = energy(q_sample)
+    m_x = zero_grad(T.max(e_x, axis=0))
+    m_q = zero_grad(T.max(e_q, axis=0))
+
+    z1 = T.log(T.sum(T.exp(e_x - m_x), axis=0)) + m_x
+    z2 = T.log(T.sum(T.exp(e_q - m_q), axis=0)) + m_q
+    return T.mean(e_x) - T.mean(e_q), z1, z2
+
+
+def css_objective(true_x, q_sample, log_q, energy, approx_grad=True, css=True):
+    """
+    CSS objective.
+    -true_x:        The data points samples
+    -q_sample:      Samples from the q distribution
+    -log_q:         log[q(q_sample)]
+    -approx_grad:   Whether to take gradients with respect to log_q (True means we don't take)
+    """
+    if approx_grad:
+        log_q = zero_grad(log_q)
+
+    # Expand the energy for the Q samples
+    e_q = energy(q_sample) - log_q - T.log(T.cast(log_q.shape[0], theano.config.floatX))
+    e_x = energy(true_x) - T.log(T.cast(true_x.shape[0], theano.config.floatX)) + T.log(T.cast(50000, theano.config.floatX))
+
+    # Concatenate energies
+    e_p = T.concatenate((e_x, e_q), axis=0)
+
+    # Calculate the objective
+    m_x = zero_grad(T.max(e_x, axis=0))
+    m_q = zero_grad(T.max(e_q, axis=0))
+    m = zero_grad(T.max(e_p, axis=0))
+
+    z1 = T.log(T.sum(T.exp(e_x - m_x), axis=0)) + m_x
+    z2 = T.log(T.sum(T.exp(e_q - m_q), axis=0)) + m_q
+    if css:
+        logsumexp = T.log(T.sum(T.exp(e_p - m), axis=0)) + m
+    else:
+        logsumexp = T.log(T.sum(T.exp(e_q - m_q), axis=0)) + m_q
+    return T.mean(e_x) - logsumexp, z1, z2

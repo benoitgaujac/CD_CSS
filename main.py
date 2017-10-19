@@ -27,7 +27,7 @@ IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
 BATCH_SIZE = 50 # batch size
 NUM_EPOCH = 10
-LOG_FREQ = 100
+LOG_FREQ = 50000//BATCH_SIZE
 LR = 0.001
 PARAMS_DIR = "./trained_models" # Path to parameters
 RESULTS_DIR = "./results" # Path to results
@@ -36,18 +36,18 @@ RESULTS_DIR = "./results" # Path to results
 num_data = 100
 
 ######################################## Models architectures ########################################
-FC_net = {"hidden":3,"nhidden_0":D,"nhidden_1":1024,"nhidden_2":2048,"nhidden_3":2048,"noutput":1}
+FC_net = {"hidden":3,"nhidden_0":D,"nhidden_1":32,"nhidden_2":64,"nhidden_3":64,"noutput":1}
 CONV_net = {"conv":2,"nhidden_0":IM_SIZE,"filter_size":5,"num_filters":32,"FC_units":1024,"noutput":1}
 arch = {"FC_net":FC_net, "CONV_net":CONV_net, "boltzman":FC_net}
 ######################################## Main ########################################
-def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy_type='boltzman', archi=None, sampling_method='gibbs'):
+def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy_type='boltzman', archi=None, sampling_method='gibbs', obj_fct="CD"):
     # Create directories
     if not os.path.exists(PARAMS_DIR):
         os.makedirs(PARAMS_DIR)
     checkpoint_file = os.path.join(PARAMS_DIR,"ckpt")
     if not os.path.exists(RESULTS_DIR):
         os.makedirs(RESULTS_DIR)
-    experiment = energy_type + "_" + sampling_method
+    experiment = obj_fct + "_" +energy_type + "_" + sampling_method
     result_file = os.path.join(RESULTS_DIR,experiment)
 
     # Get Data
@@ -61,7 +61,7 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
     X = T.matrix()
 
     # Build Model
-    print("compiling model " + energy_type + " with " + sampling_method + " sampling...")
+    print("compiling model " + energy_type + " with " + sampling_method + " sampling for " + obj_fct + "objective...")
     train_func, test_func, l_out, params = build_model(X, obj_fct="CD",
                                                 num_steps_MC=CD_STEPS,
                                                 sampling_method=sampling_method,
@@ -74,6 +74,8 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
     print("starting training...")
     test_accuracy   = np.zeros(num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1)
     train_loss      = np.zeros(num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1)
+    train_z1      = np.zeros(num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1)
+    train_z2      = np.zeros(num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1)
     time_ite        = np.zeros(num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1)
     recons          = np.zeros((num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1, D))
     #test_accuracy = np.zeros(num_epochs//LOG_FREQ+1)
@@ -82,7 +84,7 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
     best_acc, best_loss = 0.0, -100.0
     for epoch in range(num_epochs):
         for x, y in dataset.iter("train", batch_size):
-            loss = train_func(x)
+            loss, z1, z2 = train_func(x)
             if loss>best_loss:
                 best_loss = float(loss)
             if i%LOG_FREQ==0:
@@ -109,6 +111,8 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
                 test_accuracy[(i)//LOG_FREQ] = test_acc #average test acc over batch
                 recons[(i)//LOG_FREQ] = recon[0]
                 train_loss[(i)//LOG_FREQ] = loss
+                train_z1[(i)//LOG_FREQ] = z1
+                train_z2[(i)//LOG_FREQ] = z2
                 ti = time.time() - s
                 time_ite[(i)//LOG_FREQ] = ti
                 np.savetxt(result_file + '_test.txt', test_accuracy)
@@ -131,6 +135,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_data", action='store', dest="num_data", type=int, default=-1)
     parser.add_argument("--energy", action='store', dest="energy", type=str, default='boltzman')
     parser.add_argument("--sampling", action='store', dest="sampling", type=str, default='gibbs')
+    parser.add_argument("--objective","-o", action='store', dest="obj", type=str, default='CD')
     options = parser.parse_args()
 
     """
@@ -139,18 +144,19 @@ if __name__ == "__main__":
             num_epochs=options.NUM_EPOCH,
             energy_type=options.energy,
             archi=arch[options.energy],
-            sampling_method=options.sampling)
-
-
+            sampling_method=options.sampling,
+            obj_fct=options.obj)
     """
-    ene = ['CONV_net',]
+    objectives = ['CSS','CD']
+    ene = ['boltzman','FC_net','CONV_net']
     samp = ['naive_taylor','gibbs']
-    for energ in ene:
-        for sampl in samp:
-            if not (energ=='boltzman' and samp=='naive_taylor'):
-                main(batch_size=options.BATCH_SIZE,
-                        size_data=options.num_data,
-                        num_epochs=options.NUM_EPOCH,
-                        energy_type=energ,
-                        archi=arch[energ],
-                        sampling_method=sampl)
+    for ob in objectives:
+        for energ in ene:
+            for sampl in samp:
+                    main(batch_size=options.BATCH_SIZE,
+                            size_data=options.num_data,
+                            num_epochs=options.NUM_EPOCH,
+                            energy_type=energ,
+                            archi=arch[energ],
+                            sampling_method=sampl,
+                            obj_fct=ob)

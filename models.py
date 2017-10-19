@@ -32,11 +32,10 @@ def build_model(X, obj_fct, sampling_method, alpha,
     l_out, params, energy = u.build_energy(X,energy_type,archi)
     E_data = energy(X)
     # Sampling from Q
-    samples, updts = u.sampler(X, energy, E_data, num_steps_MC, params, sampling_method, srng)
+    samples, log_q, updts = u.sampler(X, energy, E_data, num_steps_MC, params, sampling_method, srng)
 
     # Build loss function & updates dictionary
-    E_q = energy(samples)
-    loss = E_data.mean() - E_q.mean()### build method to deal with CSS objectives, obj_fct arg
+    loss, z1, z2 = u.objectives(X,samples,log_q,energy,obj_fct)
     updates = upd.adam(-loss, params, learning_rate=alpha)
     updates.update(updts) #we need to ad the update dictionary
 
@@ -49,7 +48,7 @@ def build_model(X, obj_fct, sampling_method, alpha,
                                                         D=784)
 
     # Build theano function
-    train = theano.function(inputs=[X], outputs=loss, updates=updates)
+    train = theano.function(inputs=[X], outputs=(loss,z1, z2), updates=updates)
     test = theano.function(inputs=[X], outputs=(acc,recon))
 
     return train, test, l_out, params
