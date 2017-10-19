@@ -91,7 +91,7 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
                     acc, recon = test_func(x_test)
                     test_acc += acc
                     n += 1
-                    if n==50:
+                    if n==1:
                         break
                 test_acc = test_acc/float(n)
                 if test_acc>best_acc:
@@ -146,9 +146,10 @@ if __name__ == "__main__":
     samp = ['naive_taylor','gibbs']
     for energ in ene:
         for sampl in samp:
-            main(batch_size=options.BATCH_SIZE,
-                    size_data=options.num_data,
-                    num_epochs=options.NUM_EPOCH,
-                    energy_type=energ,
-                    archi=arch[energ],
-                    sampling_method=sampl)
+            if not (energ=='boltzman' and samp=='naive_taylor'):
+                main(batch_size=options.BATCH_SIZE,
+                        size_data=options.num_data,
+                        num_epochs=options.NUM_EPOCH,
+                        energy_type=energ,
+                        archi=arch[energ],
+                        sampling_method=sampl)
