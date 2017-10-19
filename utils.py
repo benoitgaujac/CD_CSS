@@ -88,8 +88,10 @@ def build_net(architecture, energy_type='FC_net'):
                                     W=lg.init.GlorotUniform(),
                                     b=lg.init.Constant(0.),
                                     nonlinearity=lg.nonlinearities.elu)
+        """
         ## Dropout
         l = lg.layers.dropout(l, p=.5)
+        """
         ## output
         l_out = lg.layers.DenseLayer(l, num_units=architecture["noutput"],
                                         W=lg.init.GlorotUniform(),
@@ -106,8 +108,11 @@ def net_energy(x, l_out, energy_type, im_resize=None):
         x - theano.tensor.matrix
     """
     if energy_type=='CONV_net':
-        x = T.reshape(x, (-1,1,im_resize,im_resize))
-    return lg.layers.get_output(l_out, x)
+        Xin = T.reshape(x, (-1,1,im_resize,im_resize),ndim=4)
+    else:
+        Xin = x
+    #pdb.set_trace()
+    return lg.layers.get_output(l_out, Xin)
 
 """
 def init_params(architecture,energy_type="boltzman"):

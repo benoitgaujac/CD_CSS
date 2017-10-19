@@ -27,7 +27,7 @@ IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
 BATCH_SIZE = 50 # batch size
 NUM_EPOCH = 10
-LOG_FREQ = 1
+LOG_FREQ = 100
 LR = 0.001
 PARAMS_DIR = "./trained_models" # Path to parameters
 RESULTS_DIR = "./results" # Path to results
@@ -132,7 +132,6 @@ if __name__ == "__main__":
     parser.add_argument("--energy", action='store', dest="energy", type=str, default='boltzman')
     parser.add_argument("--sampling", action='store', dest="sampling", type=str, default='gibbs')
     options = parser.parse_args()
-    """
     main(batch_size=options.BATCH_SIZE,
             size_data=options.num_data,
             num_epochs=options.NUM_EPOCH,
@@ -153,3 +152,4 @@ if __name__ == "__main__":
                         energy_type=energ,
                         archi=arch[energ],
                         sampling_method=sampl)
+    """
