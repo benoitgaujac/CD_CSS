@@ -27,7 +27,7 @@ IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
 BATCH_SIZE = 50 # batch size
 NUM_EPOCH = 10
-LOG_FREQ = 50000//BATCH_SIZE
+LOG_FREQ = 1000
 LR = 0.001
 PARAMS_DIR = "./trained_models" # Path to parameters
 RESULTS_DIR = "./results2" # Path to results
@@ -120,6 +120,8 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
                 np.savetxt(result_file + '_z2.txt', train_z2)
                 np.savetxt(result_file + '_time.txt', time_ite)
                 # log info
+                print("")
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
                 print("[{:.3f}s]iteration {}".format(ti, i+1))
                 print("loss: {:.5f}, best loss: {:.5f}".format(float(loss),best_loss))
                 print("test acc: {:.5f}%, best acc: {:.5f}%".format(100.0*test_acc,100.0*best_acc))
