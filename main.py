@@ -30,7 +30,7 @@ NUM_EPOCH = 10
 LOG_FREQ = 50000//BATCH_SIZE
 LR = 0.001
 PARAMS_DIR = "./trained_models" # Path to parameters
-RESULTS_DIR = "./results" # Path to results
+RESULTS_DIR = "./results2" # Path to results
 
 #### temp var ####
 num_data = 100
