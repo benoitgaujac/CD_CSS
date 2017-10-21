@@ -27,7 +27,7 @@ IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
 BATCH_SIZE = 50 # batch size
 NUM_EPOCH = 10
-LOG_FREQ = 1000
+LOG_FREQ = 390
 LR = 0.001
 PARAMS_DIR = "./trained_models" # Path to parameters
 RESULTS_DIR = "./results2" # Path to results
@@ -36,8 +36,13 @@ RESULTS_DIR = "./results2" # Path to results
 num_data = 100
 
 ######################################## Models architectures ########################################
-FC_net = {"hidden":3,"nhidden_0":D,"nhidden_1":32,"nhidden_2":64,"nhidden_3":64,"noutput":1}
-CONV_net = {"conv":2,"nhidden_0":IM_SIZE,"filter_size":5,"num_filters":32,"FC_units":1024,"noutput":1}
+FC_net = {"hidden":3,"nhidden_0":D,"nhidden_1":1024,"nhidden_2":2048,"nhidden_3":2048,"noutput":1}
+CONV_net = {"conv":3,"nhidden_0":IM_SIZE,
+            "filter_size_0":5,"num_filters_0":32,#conv1
+            "filter_size_1":3,"num_filters_1":64,#conv2
+            "filter_size_2":3,"num_filters_2":64,#conv3
+            "FC_units":1024,#FC1
+            "noutput":1}
 arch = {"FC_net":FC_net, "CONV_net":CONV_net, "boltzman":FC_net}
 ######################################## Main ########################################
 def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy_type='boltzman', archi=None, sampling_method='gibbs', obj_fct="CD"):
@@ -123,7 +128,7 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
                 print("")
                 print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
                 print("[{:.3f}s]iteration {}".format(ti, i+1))
-                print("loss: {:.5f}, best loss: {:.5f}".format(float(loss),best_loss))
+                print("loss: {:.5e}, best loss: {:.5f}".format(float(loss),best_loss))
                 print("test acc: {:.5f}%, best acc: {:.5f}%".format(100.0*test_acc,100.0*best_acc))
                 s = time.time()
             i += 1
@@ -149,7 +154,7 @@ if __name__ == "__main__":
             sampling_method=options.sampling,
             obj_fct=options.obj)
     """
-    objectives = ['CSS',]
+    objectives = ['CD',]
     ene = ['boltzman','FC_net','CONV_net']
     samp = ['naive_taylor',]
     for ob in objectives:

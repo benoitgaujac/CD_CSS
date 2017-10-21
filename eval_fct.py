@@ -1,46 +1,42 @@
+import numpy as np
 import theano
 import theano.tensor as T
-from .utils import rnd, binary_sample
+
+from sampler_fct import binary_sample
 
 
-def reconstruct_images(true_x, num_steps, params, optimal_func, fraction=0.7, D=None, energy_type="boltzman"):
+def reconstruct_images(true_x, num_steps, params, energy, srng, fraction=0.7, D=784):
     """
     Noises up fraction of each images and reconstructs it via axis aligned optimization
     """
-    if D is None:
-        D = params[0].shape[0].eval()
+
     # Randomly noise up fraction of the image
     noise_n = int(D * fraction)
-    noise_ind = T.argsort(rnd.uniform(size=true_x.shape), axis=1)
+    noise_ind = T.argsort(srng.uniform(size=true_x.shape), axis=1)
     noise_ind = T.sort(noise_ind[:, :noise_n])
     ind = T.arange(true_x.shape[0]).reshape((-1, 1))
     ind = T.repeat(ind, noise_n, axis=1)
-    fills = binary_sample(size=(true_x.shape[0], noise_n))
-    fake_x = T.set_subtensor(true_x[ind.flatten(), noise_ind.flatten()], fills.flatten())
+    fills = binary_sample(size=(true_x.shape[0], noise_n), srng=srng)
+    fake_x = T.set_subtensor(true_x[ind.flatten(),
+                                    noise_ind.flatten()],
+                             fills.flatten())
 
     # Run axis aligned optimization
-    if energy_type == "boltzman":
-        def step(i, x, *args):
-            q_i = optimal_func(x, i)
-            return T.set_subtensor(x[T.arange(x.shape[0]), i], T.gt(q_i, 0.5))
-    elif energy_type == "net":
-        def step(i, x, *args):
-            x_i = x[T.arange(x.shape[0]), i]
-            x_reversed = T.set_subtensor(x_i, 1.0 - x_i)
-            merged = T.concatenate([x, x_reversed], axis=0)
+    def step(i, x, *args):
+        x_i = x[T.arange(x.shape[0]), i]
+        x_reversed = T.set_subtensor(x_i, 1.0 - x_i)
+        merged = T.concatenate([x, x_reversed], axis=0)
 
-            eng = optimal_func(merged)
-            eng_x = eng[:x.shape[0]]
-            eng_r = eng[x.shape[0]:]
-            cond = T.gt(eng_x, eng_r)
-            # The update values
-            updated = T.switch(cond, x_i, 1.0 - x_i)
-            return T.set_subtensor(x_i, updated)
-    else:
-        raise ValueError('Unrecognized energy type')
+        eng = energy(merged).flatten()
+        eng_x = eng[:x.shape[0]]
+        eng_r = eng[x.shape[0]:]
+        cond = T.gt(eng_x, eng_r)
+        # The update values
+        updated = T.switch(cond, x_i, 1.0 - x_i)
+        return T.set_subtensor(x_i, updated)
 
     for i in range(num_steps):
-        shuffle = rnd.uniform(noise_ind.shape)
+        shuffle = srng.uniform(noise_ind.shape)
         shuffle_ind = T.argsort(shuffle, axis=1)
 
         shuffled = noise_ind[ind.flatten(), shuffle_ind.flatten()]

@@ -6,7 +6,10 @@ import numpy as np
 
 from functools import partial
 import utils as u
-from eval_reconstruct import reconstruct_images
+from energy_fct import build_energy
+from sampler_fct import sampler
+from obj_fct import objectives
+from eval_fct import reconstruct_images
 
 srng = RandomStreams(100)
 np.random.seed(42)
@@ -29,13 +32,13 @@ def build_model(X, obj_fct, sampling_method, alpha,
     """
 
     # Build energy
-    l_out, params, energy = u.build_energy(X,energy_type,archi)
+    l_out, params, energy = build_energy(X,energy_type,archi)
     E_data = energy(X)
     # Sampling from Q
-    samples, log_q, updts = u.sampler(X, energy, E_data, num_steps_MC, params, sampling_method, srng)
+    samples, log_q, updts = sampler(X, energy, E_data, num_steps_MC, params, sampling_method, srng)
 
     # Build loss function & updates dictionary
-    loss, z1, z2 = u.objectives(X,samples,log_q,energy,obj_fct,approx_grad=False)
+    loss, z1, z2 = objectives(X,samples,log_q,energy,obj_fct,approx_grad=True)
     updates = upd.adam(-loss, params, learning_rate=alpha)
     updates.update(updts) #we need to ad the update dictionary
 
