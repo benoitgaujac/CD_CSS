@@ -22,18 +22,14 @@ from utils import save_params
 
 CD_STEPS = 1 # Nb of sampling steps
 RECONSTRUCT_STEPS = 10 # Nb of Gibbs steps for reconstruction
-S = 3 # Nb of importance samples per data point
 IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
 BATCH_SIZE = 50 # batch size
 NUM_EPOCH = 10
-LOG_FREQ = 390
+LOG_FREQ = 196
 LR = 0.001
 PARAMS_DIR = "./trained_models" # Path to parameters
 RESULTS_DIR = "./results2" # Path to results
-
-#### temp var ####
-num_data = 100
 
 ######################################## Models architectures ########################################
 FC_net = {"hidden":3,"nhidden_0":D,"nhidden_1":1024,"nhidden_2":2048,"nhidden_3":2048,"noutput":1}
@@ -45,7 +41,7 @@ CONV_net = {"conv":3,"nhidden_0":IM_SIZE,
             "noutput":1}
 arch = {"FC_net":FC_net, "CONV_net":CONV_net, "boltzman":FC_net}
 ######################################## Main ########################################
-def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy_type='boltzman', archi=None, sampling_method='gibbs', obj_fct="CD"):
+def main(batch_size=BATCH_SIZE, size_data=100, num_epochs=NUM_EPOCH, energy_type='boltzman', archi=None, sampling_method='gibbs', obj_fct="CD"):
     # Create directories
     if not os.path.exists(PARAMS_DIR):
         os.makedirs(PARAMS_DIR)
@@ -89,14 +85,14 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
         for x, y in dataset.iter("train", batch_size):
             loss, z1, z2 = train_func(x)
             if loss>best_loss:
-                best_loss = float(loss)
+                best_loss = loss
             if i%LOG_FREQ==0:
                 test_acc, n = 0.0, 0 #test_acc, counter for test
                 for x_test, y_test in dataset.iter("test", batch_size):
                     acc, recon = test_func(x_test)
                     test_acc += acc
                     n += 1
-                    if n==1:
+                    if n==2:
                         break
                 test_acc = test_acc/float(n)
                 if test_acc>best_acc:
@@ -128,7 +124,7 @@ def main(batch_size=BATCH_SIZE, size_data=num_data, num_epochs=NUM_EPOCH, energy
                 print("")
                 print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
                 print("[{:.3f}s]iteration {}".format(ti, i+1))
-                print("loss: {:.5e}, best loss: {:.5f}".format(float(loss),best_loss))
+                print("loss: {:.5e}, best loss: {:.5f}".format(float(loss),float(best_loss)))
                 print("test acc: {:.5f}%, best acc: {:.5f}%".format(100.0*test_acc,100.0*best_acc))
                 s = time.time()
             i += 1
@@ -144,7 +140,6 @@ if __name__ == "__main__":
     parser.add_argument("--sampling", action='store', dest="sampling", type=str, default='gibbs')
     parser.add_argument("--objective","-o", action='store', dest="obj", type=str, default='CD')
     options = parser.parse_args()
-
     """
     main(batch_size=options.BATCH_SIZE,
             size_data=options.num_data,

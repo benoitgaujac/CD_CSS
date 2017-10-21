@@ -21,14 +21,9 @@ def cd_objective(true_x, q_sample, energy):
     """
     An objective whose gradient is equal to the CD gradient.
     """
-    e_x = energy(true_x)
-    e_q = energy(q_sample)
-    m_x = zero_grad(T.max(e_x, axis=0))
-    m_q = zero_grad(T.max(e_q, axis=0))
-
-    z1 = T.log(T.sum(T.exp(e_x - m_x), axis=0)) + m_x
-    z2 = T.log(T.sum(T.exp(e_q - m_q), axis=0)) + m_q
-    return T.mean(e_x) - T.mean(e_q), z1, z2
+    z1 = T.mean(energy(true_x))
+    z2 = T.mean(energy(q_sample))
+    return z1 - z2, z1, z2
 
 
 def css_objective(true_x, q_sample, log_q, energy, approx_grad=True, css=True):

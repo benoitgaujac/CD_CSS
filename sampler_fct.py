@@ -56,6 +56,7 @@ def gibbs_sample(X, energy, num_steps, params, srng):
         q = result[1].T
         q = q * (1.0 - 2*eps) + eps
         logq = - T.sum(T.nnet.binary_crossentropy(q, X[shuffled]), axis=1,keepdims=True)
+
     return q_samples, logq, updates
 
 def taylor_sample(X, E_data, srng):
@@ -68,9 +69,9 @@ def taylor_sample(X, E_data, srng):
     q = q * (1.0 - 2*eps) + eps
     log_q = - T.sum(T.nnet.binary_crossentropy(q, q_sample), axis=1,keepdims=True)
     # Return the objective
-    return q_sample, log_q, {}
+    return q_sample, log_q, dict()
 
-def binary_sample(size, p=0.5, dtype='float64', srng=None):
+def binary_sample(size, p=0.5, dtype=theano.config.floatX, srng=None):
     """
     Samples binary data.
     """

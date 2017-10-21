@@ -26,7 +26,7 @@ def init_BM_params(archi):
     """
     W = np.random.randn(archi["nhidden_0"], archi["nhidden_0"]) * 1e-8
     W = 0.5 * (W + W.T)
-    W = theano.shared(W.astype(dtype='float64'), name="W")
+    W = theano.shared(W.astype(dtype=theano.config.floatX), name="W")
     return W
 
 def build_net(architecture, energy_type='FC_net'):
@@ -79,6 +79,6 @@ def build_taylor_q(X, E_data, srng):
     pvals = T.nnet.softmax(E_data.reshape((1, -1)))
     pvals = T.repeat(pvals, X.shape[0], axis=0)
     pi = T.argmax(srng.multinomial(pvals=pvals,
-                                   dtype='float64'), axis=1)
+                                   dtype=theano.config.floatX), axis=1)
     q = T.nnet.sigmoid(T.grad(T.sum(E_data), X)[pi])
     return q

@@ -51,8 +51,7 @@ def build_model(X, obj_fct, sampling_method, alpha,
                                                         D=784)
 
     # Build theano function
-    #train = theano.function(inputs=[X], outputs=(loss,z1, z2), updates=updates)
-    train = theano.function(inputs=[X], outputs=(loss,z1, z2))
+    train = theano.function(inputs=[X], outputs=(loss,z1, z2), updates=updates)
     test = theano.function(inputs=[X], outputs=(acc,recon))
 
     return train, test, l_out, params
