@@ -23,14 +23,16 @@ def build_energy(x,energy_type='boltzman',archi=None):
         W = init_BM_params(archi)
         params = [W]
         l_out = botlmzan_energy(x,W)
-        energy = partial(botlmzan_energy,W=W)
+        train_energy = partial(botlmzan_energy,W=W)
+        test_energy  = train_energy
     elif energy_type=='FC_net' or energy_type=='CONV_net':
         l_out = build_net(archi, energy_type)
         params = lg.layers.get_all_params(l_out)
-        energy = partial(net_energy,l_out=l_out,energy_type=energy_type,im_resize=archi["nhidden_0"])
+        train_energy = partial(net_energy,l_out=l_out,energy_type=energy_type,im_resize=archi["nhidden_0"],deterministic=False)
+        test_energy = partial(net_energy,l_out=l_out,energy_type=energy_type,im_resize=archi["nhidden_0"],deterministic=True)
     else:
         raise ValueError("Incorrect Energy. Not FC_net nor CONV_net.")
-    return l_out, params, energy
+    return l_out, params, train_energy, test_energy
 
 def botlmzan_energy(x, W):
     """
@@ -38,15 +40,15 @@ def botlmzan_energy(x, W):
     """
     return T.sum(T.dot(x, W) * x, axis=1,keepdims=True)
 
-def net_energy(x, l_out, energy_type, im_resize=None):
+def net_energy(x, l_out, energy_type, im_resize=None, deterministic=False):
     """
         The energy function for the NNET
         l_out - lasagne layer
         x - theano.tensor.matrix
     """
     if energy_type=='CONV_net':
-        Xin = T.reshape(x, (-1,1,im_resize,im_resize),ndim=4).astype(theano.config.floatX)
+        Xin = T.reshape(x, (-1,1,im_resize,im_resize),ndim=4)
     else:
         Xin = x
     #pdb.set_trace()
-    return lg.layers.get_output(l_out, Xin)
+    return lg.layers.get_output(l_out, Xin, deterministic=deterministic)

@@ -14,11 +14,10 @@ from eval_fct import reconstruct_images
 srng = RandomStreams(100)
 np.random.seed(42)
 
-def build_model(X, obj_fct, sampling_method, alpha,
-                            num_steps_MC=1,
-                            num_steps_reconstruct=10,
-                            energy_type="boltzman",
-                            archi=None):
+def build_model(X, obj_fct, alpha, sampling_method, num_steps_MC=1,
+                                                    num_steps_reconstruct=10,
+                                                    energy_type="boltzman",
+                                                    archi=None):
     """
     Build model and return train and test function, as well as output
     -X:                 Input
@@ -32,26 +31,26 @@ def build_model(X, obj_fct, sampling_method, alpha,
     """
 
     # Build energy
-    l_out, params, energy = build_energy(X,energy_type,archi)
-    E_data = energy(X)
+    l_out, params, train_energy, test_energy = build_energy(X,energy_type,archi)
+    E_data = train_energy(X)
     # Sampling from Q
-    samples, log_q, updts = sampler(X, energy, E_data, num_steps_MC, params, sampling_method, srng)
+    samples, log_q, updts = sampler(X, train_energy, E_data, num_steps_MC, params, sampling_method, srng)
 
     # Build loss function & updates dictionary
-    loss, z1, z2 = objectives(X,samples,log_q,energy,obj_fct,approx_grad=True)
+    loss, z1, z2 = objectives(X,samples,log_q,train_energy,obj_fct,approx_grad=True)
     updates = upd.adam(-loss, params, learning_rate=alpha)
     updates.update(updts) #we need to ad the update dictionary
 
     # Evaluation
     recon, acc = reconstruct_images(X, num_steps=num_steps_reconstruct,
                                                         params=params,
-                                                        energy=energy,
+                                                        energy=test_energy,
                                                         srng=srng,
                                                         fraction=0.7,
                                                         D=784)
 
     # Build theano function
-    train = theano.function(inputs=[X], outputs=(loss,z1, z2), updates=updates)
-    test = theano.function(inputs=[X], outputs=(acc,recon))
+    train_function = theano.function(inputs=[X], outputs=(loss,z1, z2, acc), updates=updates)
+    test_function = theano.function(inputs=[X], outputs=(loss,acc,recon))
 
-    return train, test, l_out, params
+    return train_function, test_function, l_out, params
