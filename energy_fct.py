@@ -23,16 +23,14 @@ def build_energy(x,energy_type='boltzman',archi=None):
         W = init_BM_params(archi)
         params = [W]
         l_out = botlmzan_energy(x,W)
-        train_energy = partial(botlmzan_energy,W=W)
-        test_energy  = train_energy
+        energy = partial(botlmzan_energy,W=W)
     elif energy_type=='FC_net' or energy_type=='CONV_net':
         l_out = build_net(archi, energy_type)
         params = lg.layers.get_all_params(l_out)
-        train_energy = partial(net_energy,l_out=l_out,energy_type=energy_type,im_resize=archi["nhidden_0"],deterministic=False)
-        test_energy = partial(net_energy,l_out=l_out,energy_type=energy_type,im_resize=archi["nhidden_0"],deterministic=True)
+        energy = partial(net_energy,l_out=l_out,energy_type=energy_type,im_resize=archi["nhidden_0"])
     else:
         raise ValueError("Incorrect Energy. Not FC_net nor CONV_net.")
-    return l_out, params, train_energy, test_energy
+    return l_out, params, energy
 
 def botlmzan_energy(x, W):
     """
@@ -40,7 +38,7 @@ def botlmzan_energy(x, W):
     """
     return T.sum(T.dot(x, W) * x, axis=1,keepdims=True)
 
-def net_energy(x, l_out, energy_type, im_resize=None, deterministic=False):
+def net_energy(x, l_out, energy_type, im_resize=None):
     """
         The energy function for the NNET
         l_out - lasagne layer
@@ -51,4 +49,4 @@ def net_energy(x, l_out, energy_type, im_resize=None, deterministic=False):
     else:
         Xin = x
     #pdb.set_trace()
-    return lg.layers.get_output(l_out, Xin, deterministic=deterministic)
+    return lg.layers.get_output(l_out, Xin)
