@@ -26,8 +26,8 @@ IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
 BATCH_SIZE = 50 # batch size
 NUM_EPOCH = 10
-LOG_FREQ = 2
-LR = 0.001
+LOG_FREQ = 4
+LR = 0.0002
 PARAMS_DIR = "./trained_models" # Path to parameters
 RESULTS_DIR = "./results4" # Path to results
 
@@ -96,7 +96,7 @@ def main(batch_size=BATCH_SIZE, size_data=100, num_epochs=NUM_EPOCH, energy_type
                     test_a += acc
                     test_l += l
                     n += 1
-                    if n==2:
+                    if n==3:
                         break
                 test_a = test_a/float(n)
                 test_l = test_l/float(n)
@@ -112,18 +112,20 @@ def main(batch_size=BATCH_SIZE, size_data=100, num_epochs=NUM_EPOCH, energy_type
                         raise ValueError("Incorrect Energy. Not net or boltzman.")
                     """
                 # Store info
-                test_loss[(i)//LOG_FREQ] = test_l
-                test_accuracy[(i)//LOG_FREQ] = test_a #average test acc over batch
-                recons[(i)//LOG_FREQ] = recon[0]
                 train_loss[(i)//LOG_FREQ] = train_l
+                test_loss[(i)//LOG_FREQ] = test_l
+                train_accuracy[(i)//LOG_FREQ] = train_a
+                test_accuracy[(i)//LOG_FREQ] = test_a
+                recons[(i)//LOG_FREQ] = recon[0]
                 train_z1[(i)//LOG_FREQ] = z1
                 train_z2[(i)//LOG_FREQ] = z2
-                train_accuracy[(i)//LOG_FREQ] = train_a #average test acc over batch
                 ti = time.time() - s
                 time_ite[(i)//LOG_FREQ] = ti
-                np.savetxt(result_file + '_test.txt', test_accuracy)
+                np.savetxt(result_file + '_train_acc.txt', train_accuracy)
+                np.savetxt(result_file + '_test_acc.txt', test_accuracy)
+                np.savetxt(result_file + '_train_loss.txt', train_loss)
+                np.savetxt(result_file + '_test_loss.txt', test_loss)
                 np.savetxt(result_file + '_recon.txt', recons)
-                np.savetxt(result_file + '_loss.txt', train_loss)
                 np.savetxt(result_file + '_z1.txt', train_z1)
                 np.savetxt(result_file + '_z2.txt', train_z2)
                 np.savetxt(result_file + '_time.txt', time_ite)
