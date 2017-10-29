@@ -37,12 +37,31 @@ def build_model(X, obj_fct, alpha, sampling_method, num_steps_MC=1,
     samples, log_q, updts = sampler(X, energy, E_data, num_steps_MC, params, sampling_method, srng)
 
     # Build loss function & updates dictionary
-    loss, z1, z2 = objectives(X,samples,log_q,energy,obj_fct,approx_grad=True)
+    loss, z1, z2 = objectives(X,samples,log_q,energy,E_data,obj_fct,approx_grad=True)
     updates = upd.adam(-loss, params, learning_rate=alpha)
     updates.update(updts) #we need to ad the update dictionary
 
     # Evaluation
-    recon, acc = reconstruct_images(X, num_steps=num_steps_reconstruct,
+    recon_01, acc_01 = reconstruct_images(X, num_steps=num_steps_reconstruct,
+                                                        params=params,
+                                                        energy=energy,
+                                                        srng=srng,
+                                                        fraction=0.1,
+                                                        D=784)
+
+    recon_03, acc_03 = reconstruct_images(X, num_steps=num_steps_reconstruct,
+                                                        params=params,
+                                                        energy=energy,
+                                                        srng=srng,
+                                                        fraction=0.3,
+                                                        D=784)
+    recon_05, acc_05 = reconstruct_images(X, num_steps=num_steps_reconstruct,
+                                                        params=params,
+                                                        energy=energy,
+                                                        srng=srng,
+                                                        fraction=0.5,
+                                                        D=784)
+    recon_07, acc_07 = reconstruct_images(X, num_steps=num_steps_reconstruct,
                                                         params=params,
                                                         energy=energy,
                                                         srng=srng,
@@ -50,7 +69,7 @@ def build_model(X, obj_fct, alpha, sampling_method, num_steps_MC=1,
                                                         D=784)
 
     # Build theano function
-    train_function = theano.function(inputs=[X], outputs=(loss,z1, z2, acc), updates=updates)
-    test_function = theano.function(inputs=[X], outputs=(loss,acc,recon))
+    loss_function = theano.function(inputs=[X], outputs=(loss,z1,z2), updates=updates)
+    eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_03,acc_05,acc_07,recon_01,recon_03,recon_05,recon_07))
 
-    return train_function, test_function, l_out, params
+    return loss_function, eval_function, l_out, params

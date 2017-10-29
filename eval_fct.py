@@ -4,6 +4,8 @@ import theano.tensor as T
 
 from sampler_fct import binary_sample
 
+import pdb
+
 
 def reconstruct_images(true_x, num_steps, params, energy, srng, fraction=0.7, D=784):
     """
@@ -50,8 +52,4 @@ def reconstruct_images(true_x, num_steps, params, energy, srng, fraction=0.7, D=
 
     # Incorrectly look at the whole images
     correct_pixels = T.mean(T.cast(T.eq(true_x, fake_x), theano.config.floatX))
-    # Get the ratio of correctly predicted pixels
-    #     bad_pixels = true_x[ind.flatten(), noise_ind.flatten()]
-    #     reconstruct_pixels = fake_x[ind.flatten(), noise_ind.flatten()]
-    #     correct_pixels = T.mean(T.cast(T.eq(bad_pixels, reconstruct_pixels), theano.config.floatX))
     return fake_x, correct_pixels

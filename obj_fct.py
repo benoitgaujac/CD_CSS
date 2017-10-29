@@ -7,26 +7,26 @@ from theano.gradient import zero_grad
 
 eps=1e-6
 
-def objectives(true_x,q_sample,log_q,energy,obj_fct,approx_grad=True, css=True):
+def objectives(true_x,q_sample,log_q,energy,E_data,obj_fct,approx_grad=True, css=True):
     if obj_fct=='CD':
-        l, z1, z2 = cd_objective(true_x, q_sample, energy)
+        l, z1, z2 = cd_objective(true_x, q_sample, energy, E_data)
     elif obj_fct=='CSS':
-        l, z1, z2 = css_objective(true_x, q_sample, log_q, energy, approx_grad, css)
+        l, z1, z2 = css_objective(true_x, q_sample, log_q, energy, E_data, approx_grad, css)
     else:
         raise ValueError("Incorrect objective function. Not CD nor CSS.")
 
     return l, z1, z2
 
-def cd_objective(true_x, q_sample, energy):
+def cd_objective(true_x, q_sample, energy, E_data):
     """
     An objective whose gradient is equal to the CD gradient.
     """
-    z1 = T.mean(energy(true_x))
+    z1 = T.mean(E_data)
     z2 = T.mean(energy(q_sample))
     return z1 - z2, z1, z2
 
 
-def css_objective(true_x, q_sample, log_q, energy, approx_grad=True, css=True):
+def css_objective(true_x, q_sample, log_q, energy, E_data, approx_grad=True, css=True):
     """
     CSS objective.
     -true_x:        The data points samples
@@ -39,7 +39,7 @@ def css_objective(true_x, q_sample, log_q, energy, approx_grad=True, css=True):
 
     # Expand the energy for the Q samples
     e_q = energy(q_sample) - log_q - T.log(T.cast(log_q.shape[0], theano.config.floatX))
-    e_x = energy(true_x)
+    e_x = E_data
 
     # Concatenate energies
     e_p = T.concatenate((e_x, e_q), axis=0)
