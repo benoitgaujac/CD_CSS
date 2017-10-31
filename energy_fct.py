@@ -38,7 +38,7 @@ def botlmzan_energy(x, W):
     """
     return T.sum(T.dot(x, W) * x, axis=1,keepdims=True)
 
-def net_energy(x, l_out, energy_type, im_resize=None):
+def net_energy(x, log_l_out, energy_type, im_resize=None):
     """
         The energy function for the NNET
         l_out - lasagne layer
@@ -49,4 +49,4 @@ def net_energy(x, l_out, energy_type, im_resize=None):
     else:
         Xin = x
     #pdb.set_trace()
-    return lg.layers.get_output(l_out, Xin)
+    return T.exp(lg.layers.get_output(log_l_out, Xin))

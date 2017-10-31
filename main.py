@@ -12,6 +12,7 @@ if not DATA_PATH in sys.path:
 from bb_datasets import get_dataset
 
 import numpy as np
+from math import log,exp
 import pandas as pd
 from functools import partial
 import theano
@@ -27,7 +28,7 @@ IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
 BATCH_SIZE = 50 # batch size
 NUM_EPOCH = 10
-LOG_FREQ = 2
+LOG_FREQ = 4
 NUM_RECON = 2
 LR = 0.0002
 PARAMS_DIR = "./trained_models" # Path to parameters
@@ -60,6 +61,12 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
     experiment = obj_fct + "_" +energy_type + "_" + sampling_method
     result_file = os.path.join(RESULTS_DIR,experiment)
 
+    # Flipping prob for stupidq
+    p_flip = T.scalar(dtype=theano.config.floatX)
+    nm_steps_tot = NUM_EPOCH*dataset.data['train'][0].shape[0]//batch_size
+    decay_rate = 1/(4*log(nm_steps_tot))
+    prob_init = 0.4
+
     # Input tensor
     X = T.matrix()
 
@@ -69,6 +76,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
     loss_function, eval_function, l_out, params = build_model(X, obj_fct=obj_fct,
                                                                         alpha=LR,
                                                                         sampling_method=sampling_method,
+                                                                        p_flip = p_flip,
                                                                         num_steps_MC=CD_STEPS,
                                                                         num_steps_reconstruct=RECONSTRUCT_STEPS,
                                                                         energy_type=energy_type,
@@ -90,7 +98,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
     best_acc, best_loss = 0.0, -100.0
     for epoch in range(num_epochs):
         for x, y in dataset.iter("train", batch_size):
-            train_l, Z1, Z2 = loss_function(x)
+            train_l, Z1, Z2 = loss_function(x,prob_init*exp(i*log(decay_rate)))
             if train_l>best_loss:
                 best_loss = train_l
             if i%LOG_FREQ==0:
@@ -101,17 +109,16 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                 test_l, n = 0.0, 0
                 test_a = np.zeros((len(fractions)))
                 for x_test, y_test in dataset.iter("test", batch_size):
-                    l, _, _ = loss_function(x_test)
+                    l, _, _ = loss_function(x_test,prob_init*exp(i*log(decay_rate)))
                     test_l += l
                     acc1,acc3,acc5,acc7,recon1,recon3,recon5,recon7 = eval_function(x_test)
                     test_a += np.array([acc1,acc3,acc5,acc7])
                     n += 1
-                    if n==2:
+                    if n==1:
                         break
                 test_a = test_a/float(n)
                 test_l = test_l/float(n)
                 recon = np.array([recon1,recon3,recon5,recon7])
-                pdb.set_trace()
                 if test_a[-1]>best_acc:
                     best_acc = test_a[-1]
                     """
@@ -170,9 +177,9 @@ if __name__ == "__main__":
     dataset.load()
     for k in ("train", "valid", "test"):
         dataset.data[k] = ((0.5 < dataset.data[k][0][:options.num_data]).astype(theano.config.floatX),
+
                                                                 dataset.data[k][1][:options.num_data])
     """
-
     main(dataset,batch_size=options.BATCH_SIZE,
                 num_epochs=options.NUM_EPOCH,
                 energy_type=options.energy,
@@ -181,9 +188,9 @@ if __name__ == "__main__":
                 obj_fct=options.obj)
     """
     objectives = ['CD','CSS']
-    ene = ['boltzman','FC_net','CONV_net']
+    ene = ['CONV_net','boltzman','FC_net']
     #ene = ['boltzman','FC_net','CONV_net']
-    samp = ['naive_taylor',]
+    samp = ['naive_taylor','stupid_q']
     for ob in objectives:
         for energ in ene:
             for sampl in samp:

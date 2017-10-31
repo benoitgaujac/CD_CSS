@@ -14,7 +14,8 @@ from eval_fct import reconstruct_images
 srng = RandomStreams(100)
 np.random.seed(42)
 
-def build_model(X, obj_fct, alpha, sampling_method, num_steps_MC=1,
+def build_model(X, obj_fct, alpha, sampling_method, p_flip,
+                                                    num_steps_MC=1,
                                                     num_steps_reconstruct=10,
                                                     energy_type="boltzman",
                                                     archi=None):
@@ -34,7 +35,7 @@ def build_model(X, obj_fct, alpha, sampling_method, num_steps_MC=1,
     l_out, params, energy = build_energy(X,energy_type,archi)
     E_data = energy(X)
     # Sampling from Q
-    samples, log_q, updts = sampler(X, energy, E_data, num_steps_MC, params, sampling_method, srng)
+    samples, log_q, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, srng)
 
     # Build loss function & updates dictionary
     loss, z1, z2 = objectives(X,samples,log_q,energy,E_data,obj_fct,approx_grad=False)
@@ -69,7 +70,7 @@ def build_model(X, obj_fct, alpha, sampling_method, num_steps_MC=1,
                                                         D=784)
 
     # Build theano function
-    loss_function = theano.function(inputs=[X], outputs=(loss,z1,z2), updates=updates)
+    loss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2), updates=updates)
     eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_03,acc_05,acc_07,recon_01,recon_03,recon_05,recon_07))
 
     return loss_function, eval_function, l_out, params
