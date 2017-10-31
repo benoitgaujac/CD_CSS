@@ -32,7 +32,7 @@ LOG_FREQ = 4
 NUM_RECON = 2
 LR = 0.0002
 PARAMS_DIR = "./trained_models" # Path to parameters
-RESULTS_DIR = "./results6" # Path to results
+RESULTS_DIR = "./results9" # Path to results
 
 fractions = [0.1,0.3,0.5,0.7]
 
@@ -179,6 +179,7 @@ if __name__ == "__main__":
         dataset.data[k] = ((0.5 < dataset.data[k][0][:options.num_data]).astype(theano.config.floatX),
 
                                                                 dataset.data[k][1][:options.num_data])
+    """
     main(dataset,batch_size=options.BATCH_SIZE,
                 num_epochs=options.NUM_EPOCH,
                 energy_type=options.energy,
@@ -199,4 +200,3 @@ if __name__ == "__main__":
                                     archi=arch[energ],
                                     sampling_method=sampl,
                                     obj_fct=ob)
-    """
