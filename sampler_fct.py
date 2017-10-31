@@ -9,7 +9,7 @@ from utils import build_taylor_q
 
 eps=1e-6
 
-def sampler(x, energy, E_data, num_steps, params, sampling_method, srng):
+def sampler(x, energy, E_data, num_steps, params, p_flip, sampling_method, srng):
     """
     Sampler for MC approximation of the energy. Return samples.
     -x:                 Input data
@@ -23,6 +23,8 @@ def sampler(x, energy, E_data, num_steps, params, sampling_method, srng):
         samples, logq, updates = gibbs_sample(x, energy, num_steps, params, srng)
     elif sampling_method=="naive_taylor":
         samples, logq, updates = taylor_sample(x, E_data, srng)
+    elif sampling_method=="stupid_q":
+        samples, logq, updates = stupidq(x,p_flip,srng)
     else:
         raise ValueError("Incorrect sampling method. Not gibbs nor naive_taylor.")
 
@@ -68,7 +70,16 @@ def taylor_sample(X, E_data, srng):
     # Calculate log[q(q_sample)]
     q = q * (1.0 - 2*eps) + eps
     log_q = - T.sum(T.nnet.binary_crossentropy(q, q_sample), axis=1,keepdims=True)
-    # Return the objective
+
+    return q_sample, log_q, dict()
+
+def stupidq(X,p_flip,srng):
+    size = X.shape
+    Xflipped = 1.0 - X
+    binomial = binary_sample(size=size, p=p_flip, srng=srng)
+    q_sample = T.switch(binomial, X, Xflipped)
+    log_q = - T.sum(T.nnet.binary_crossentropy(p_flip*T.ones_like(X), q_sample), axis=1,keepdims=True)
+
     return q_sample, log_q, dict()
 
 def binary_sample(size, p=0.5, dtype=theano.config.floatX, srng=None):

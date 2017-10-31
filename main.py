@@ -179,7 +179,6 @@ if __name__ == "__main__":
         dataset.data[k] = ((0.5 < dataset.data[k][0][:options.num_data]).astype(theano.config.floatX),
 
                                                                 dataset.data[k][1][:options.num_data])
-    """
     main(dataset,batch_size=options.BATCH_SIZE,
                 num_epochs=options.NUM_EPOCH,
                 energy_type=options.energy,
@@ -200,3 +199,4 @@ if __name__ == "__main__":
                                     archi=arch[energ],
                                     sampling_method=sampl,
                                     obj_fct=ob)
+    """

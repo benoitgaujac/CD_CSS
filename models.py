@@ -70,7 +70,7 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
                                                         D=784)
 
     # Build theano function
-    loss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2), updates=updates)
+    loss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2), updates=updates,on_unused_input='ignore')
     eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_03,acc_05,acc_07,recon_01,recon_03,recon_05,recon_07))
 
     return loss_function, eval_function, l_out, params
