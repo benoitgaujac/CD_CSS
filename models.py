@@ -37,7 +37,7 @@ def build_model(X, obj_fct, alpha, sampling_method, num_steps_MC=1,
     samples, log_q, updts = sampler(X, energy, E_data, num_steps_MC, params, sampling_method, srng)
 
     # Build loss function & updates dictionary
-    loss, z1, z2 = objectives(X,samples,log_q,energy,E_data,obj_fct,approx_grad=True)
+    loss, z1, z2 = objectives(X,samples,log_q,energy,E_data,obj_fct,approx_grad=False)
     updates = upd.adam(-loss, params, learning_rate=alpha)
     updates.update(updts) #we need to ad the update dictionary
 

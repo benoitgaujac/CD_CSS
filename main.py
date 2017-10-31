@@ -111,6 +111,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                 test_a = test_a/float(n)
                 test_l = test_l/float(n)
                 recon = np.array([recon1,recon3,recon5,recon7])
+                pdb.set_trace()
                 if test_a[-1]>best_acc:
                     best_acc = test_a[-1]
                     """
