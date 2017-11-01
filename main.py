@@ -180,10 +180,11 @@ if __name__ == "__main__":
     # Get Data
     dataset = get_dataset("mnist")
     dataset.load()
-    for k in ("train",):
-        dataset.data[k] = ((0.5 < dataset.data[k][0][:options.num_data]).astype(theano.config.floatX),
 
-                                                                dataset.data[k][1][:options.num_data])
+    for k in ("train", "valid", "test"):
+        dataset.data[k] = ((0.5 < dataset.data[k][0][:-1]).astype(theano.config.floatX),dataset.data[k][1][:-1])
+    dataset.data["train"] = (dataset.data[k][0][:options.num_data],dataset.data[k][1][:options.num_data])
+    pdb.set_trace()
     """
     main(dataset,batch_size=options.BATCH_SIZE,
                 num_epochs=options.NUM_EPOCH,
