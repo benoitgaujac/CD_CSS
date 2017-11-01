@@ -29,7 +29,8 @@ D = IM_SIZE*IM_SIZE # Dimension
 BATCH_SIZE = 50 # batch size
 NUM_EPOCH = 10
 LOG_FREQ = 4
-NUM_RECON = 2
+NUM_RECON = 5
+IND_RECON = 2000
 LR = 0.0002
 PARAMS_DIR = "./trained_models" # Path to parameters
 RESULTS_DIR = "./results9" # Path to results
@@ -53,13 +54,16 @@ def save_np(array,name,exp):
 ######################################## Main ########################################
 def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='boltzman', archi=None, sampling_method='gibbs', obj_fct="CD"):
     # Create directories
+    experiment = obj_fct + "_" +energy_type + "_" + sampling_method
     if not os.path.exists(PARAMS_DIR):
         os.makedirs(PARAMS_DIR)
-    checkpoint_file = os.path.join(PARAMS_DIR,"ckpt")
+    checkpoint_file = os.path.join(PARAMS_DIR,experiment)
     if not os.path.exists(RESULTS_DIR):
         os.makedirs(RESULTS_DIR)
-    experiment = obj_fct + "_" +energy_type + "_" + sampling_method
     result_file = os.path.join(RESULTS_DIR,experiment)
+
+    # Image to visualize reconstruction
+    true_x = dataset.data["test"][0][IND_RECON:IND_RECON+NUM_RECON]
 
     # Flipping prob for stupidq
     p_flip = T.scalar(dtype=theano.config.floatX)
@@ -72,7 +76,6 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
 
     # Build Model
     print("\ncompiling model " + energy_type + " with " + sampling_method + " sampling for " + obj_fct + " objective...")
-    # Train function
     loss_function, eval_function, l_out, params = build_model(X, obj_fct=obj_fct,
                                                                         alpha=LR,
                                                                         sampling_method=sampling_method,
@@ -81,7 +84,6 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                                                                         num_steps_reconstruct=RECONSTRUCT_STEPS,
                                                                         energy_type=energy_type,
                                                                         archi=archi)
-
     # Training loop
     print("starting training...")
     shape = (num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1,len(fractions),NUM_RECON,D)
@@ -92,8 +94,6 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
     z1              = np.zeros(shape[0])
     z2              = np.zeros(shape[0])
     time_ite        = np.zeros(shape[0])
-    recons          = np.zeros(shape)
-    true_x          = np.zeros((num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1,1,NUM_RECON,D))
     i, s = 0, time.time() #counter for iteration, time
     best_acc, best_loss = 0.0, -100.0
     for epoch in range(num_epochs):
@@ -111,25 +111,18 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                 for x_test, y_test in dataset.iter("test", batch_size):
                     l, _, _ = loss_function(x_test,prob_init*exp(i*log(decay_rate)))
                     test_l += l
-                    acc1,acc3,acc5,acc7,recon1,recon3,recon5,recon7 = eval_function(x_test)
+                    acc1,acc3,acc5,acc7,_,_,_,_ = eval_function(x_test)
                     test_a += np.array([acc1,acc3,acc5,acc7])
                     n += 1
-                    if n==1:
+                    if n==2:
                         break
                 test_a = test_a/float(n)
                 test_l = test_l/float(n)
-                recon = np.array([recon1,recon3,recon5,recon7])
                 if test_a[-1]>best_acc:
                     best_acc = test_a[-1]
-                    """
-                    Save params
-                    if energy_type=='boltzman':
-                        save_params([W.get_value() for W in params], checkpoint_file+"_"+str(epoch)+"_")
-                    elif energy_type=='net':
-                        save_params(lg.layers.get_all_param_values(l_out), checkpoint_file+"_"+str(epoch)+"_")
-                    else:
-                        raise ValueError("Incorrect Energy. Not net or boltzman.")
-                    """
+                    _,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
+                    recons = np.array([recon1,recon3,recon5,recon7])
+                    save_params(np.split(recons,np.shape(recons)[0]), result_file + '_best_recons', date_time=False)
                 # Store info
                 train_accuracy[(i)//LOG_FREQ] = train_a
                 test_accuracy[(i)//LOG_FREQ] = test_a
@@ -139,8 +132,6 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                 z2[(i)//LOG_FREQ] = Z2
                 ti = time.time() - s
                 time_ite[(i)//LOG_FREQ] = ti
-                recons[(i)//LOG_FREQ] = recon[:,:NUM_RECON]
-                true_x[(i)//LOG_FREQ,0] = x_test[:NUM_RECON]
                 # Save info
                 save_np(train_accuracy,'train_acc',result_file)
                 save_np(test_accuracy,'test_acc',result_file)
@@ -149,8 +140,6 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                 save_np(z1,'z1',result_file)
                 save_np(z2,'z2',result_file)
                 save_np(time_ite,'time',result_file)
-                save_params(np.split(recons,np.shape(recons)[0]), result_file + '_recons', date_time=False)
-                save_params(np.split(true_x,np.shape(true_x)[0]), result_file + '_truex', date_time=False)
                 # log info
                 print("")
                 print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
@@ -159,6 +148,22 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                 print("train acc: {:.3f}%, test acc: {:.3f}%".format(100.0*train_a[-1],100.0*test_a[-1]))
                 s = time.time()
             i += 1
+
+    # Reconstructing images after training ends
+    _,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
+    recons = np.array([recon1,recon3,recon5,recon7])
+    save_params(np.split(recons,np.shape(recons)[0]), result_file + '_final_recons', date_time=False)
+    save_params(np.split(true_x,np.shape(true_x)[0]), result_file + '_truex', date_time=False)
+
+    # Save final params
+    print("\nSaving weights..")
+    if energy_type=='boltzman':
+        save_params([W.get_value() for W in params], checkpoint_file,True)
+    elif energy_type[-3:]=='net':
+        save_params(lg.layers.get_all_param_values(l_out), checkpoint_file,True)
+    else:
+        raise ValueError("Incorrect Energy. Not net or boltzman.")
+
 
 
 if __name__ == "__main__":
@@ -175,7 +180,7 @@ if __name__ == "__main__":
     # Get Data
     dataset = get_dataset("mnist")
     dataset.load()
-    for k in ("train", "valid", "test"):
+    for k in ("train",):
         dataset.data[k] = ((0.5 < dataset.data[k][0][:options.num_data]).astype(theano.config.floatX),
 
                                                                 dataset.data[k][1][:options.num_data])
@@ -189,8 +194,8 @@ if __name__ == "__main__":
     """
     objectives = ['CD','CSS']
     ene = ['CONV_net','boltzman','FC_net']
-    #ene = ['boltzman','FC_net','CONV_net']
-    samp = ['naive_taylor','stupid_q']
+    #samp = ['naive_taylor','stupid_q']
+    samp = ['naive_taylor',]
     for ob in objectives:
         for energ in ene:
             for sampl in samp:

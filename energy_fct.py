@@ -49,4 +49,4 @@ def net_energy(x, l_out, energy_type, im_resize=None):
     else:
         Xin = x
     #pdb.set_trace()
-    return T.exp(lg.layers.get_output(l_out, Xin))
+    return lg.layers.get_output(l_out, Xin)
