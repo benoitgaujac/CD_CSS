@@ -31,9 +31,9 @@ NUM_EPOCH = 10
 LOG_FREQ = 4
 NUM_RECON = 5
 IND_RECON = 2000
-LR = 0.0002
+LR = 0.0001
 PARAMS_DIR = "./trained_models" # Path to parameters
-RESULTS_DIR = "./results9" # Path to results
+RESULTS_DIR = "./results10" # Path to results
 
 fractions = [0.1,0.3,0.5,0.7]
 
@@ -121,8 +121,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                 if test_a[-1]>best_acc:
                     best_acc = test_a[-1]
                     _,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
-                    recons = np.array([recon1,recon3,recon5,recon7])
-                    save_params(np.split(recons,np.shape(recons)[0]), result_file + '_best_recons', date_time=False)
+                    #save_params(np.split(recons,np.shape(recons)[0]), result_file + '_best_recons', date_time=False)
+                    save_params([recon1,recon3,recon5,recon7], result_file + '_best_recons', date_time=False)
                 # Store info
                 train_accuracy[(i)//LOG_FREQ] = train_a
                 test_accuracy[(i)//LOG_FREQ] = test_a
@@ -165,7 +165,6 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         raise ValueError("Incorrect Energy. Not net or boltzman.")
 
 
-
 if __name__ == "__main__":
 
     parser = ArgumentParser()
@@ -184,7 +183,8 @@ if __name__ == "__main__":
     for k in ("train", "valid", "test"):
         dataset.data[k] = ((0.5 < dataset.data[k][0][:-1]).astype(theano.config.floatX),dataset.data[k][1][:-1])
     dataset.data["train"] = (dataset.data[k][0][:options.num_data],dataset.data[k][1][:options.num_data])
-    pdb.set_trace()
+
+
     """
     main(dataset,batch_size=options.BATCH_SIZE,
                 num_epochs=options.NUM_EPOCH,
@@ -193,6 +193,7 @@ if __name__ == "__main__":
                 sampling_method=options.sampling,
                 obj_fct=options.obj)
     """
+
     objectives = ['CD','CSS']
     ene = ['CONV_net','boltzman','FC_net']
     #samp = ['naive_taylor','stupid_q']
