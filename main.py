@@ -118,7 +118,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     best_loss = train_l
                 if i%LOG_FREQ==0:
                     # Eval train
-                    train_a1,train_a3,train_a5,train_a7,_,_,_,_ = eval_function(x)
+                    _,train_a1,train_a3,train_a5,train_a7,_,_,_,_ = eval_function(x)
                     train_a = np.array([train_a1,train_a3,train_a5,train_a7])
                     # Test
                     test_l, n = 0.0, 0
@@ -135,7 +135,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     test_l = test_l/float(n)
                     if test_a[-1]>best_acc:
                         best_acc = test_a[-1]
-                        _,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
+                        _,_,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
                         #save_params(np.split(recons,np.shape(recons)[0]), result_file + '_best_recons', date_time=False)
                         save_params([recon1,recon3,recon5,recon7], result_file + '_best_recons', date_time=False)
                     # Store info
@@ -165,7 +165,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     s = time.time()
                 i += 1
         # Reconstructing images after training ends
-        _,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
+        _,_,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
         save_params([recon1,recon3,recon5,recon7], result_file + '_final_recons', date_time=False)
         save_params([recon1,recon3,recon5,recon7], result_file + '_truex', date_time=False)
         # Save final params
