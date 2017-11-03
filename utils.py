@@ -13,15 +13,6 @@ import pdb
 
 eps=1e-6
 
-######################################## Save/load params ########################################
-def save_params(params, filename, date_time=True):
-    if date_time:
-        filename = filename + datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
-    with open(filename + ".pmz", 'wb') as f:
-        #for param in params:
-        #    cPickle.dump(param, f, protocol=cPickle.HIGHEST_PROTOCOL)
-        cPickle.dump(params, f, protocol=cPickle.HIGHEST_PROTOCOL)
-
 ######################################## Energy ########################################
 def init_BM_params(archi):
     """
