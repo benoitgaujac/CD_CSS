@@ -46,7 +46,7 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
         l2_penalty = T.sum(T.sqr(params[0]))
     else:
         l2_penalty = regularize_layer_params(l_out,l2)
-    L = -loss + coef_regu*l2
+    L = -loss + coef_regu*l2_penalty
     updates = upd.adam(L, params, learning_rate=alpha)
     updates.update(updts) #we need to ad the update dictionary
 
