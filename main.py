@@ -29,11 +29,11 @@ IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
 BATCH_SIZE = 50 # batch size
 NUM_EPOCH = 10
-LOG_FREQ = 32
-NUM_RECON = 5
+LOG_FREQ = 64
+NUM_RECON = 10
 IND_RECON = 2000
-LR = 0.0001
-RESULTS_DIR = "./results12" # Path to results
+LR = 0.00005
+RESULTS_DIR = "./results13" # Path to results
 if not os.path.exists(RESULTS_DIR):
     os.makedirs(RESULTS_DIR)
 PARAMS_SUBDIR = os.path.join(RESULTS_DIR,"weights") # Path to parameters
@@ -84,8 +84,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         # Flipping prob for stupidq
         p_flip = T.scalar(dtype=theano.config.floatX)
         nm_steps_tot = NUM_EPOCH*dataset.data['train'][0].shape[0]//batch_size
-        decay_rate = 1/(4*log(nm_steps_tot))
-        prob_init = 0.3
+        prob_init = 0.4
+        decay_rate = exp((1/float(nm_steps_tot))*log(0.05/prob_init))
         # Input tensor
         X = T.matrix()
         # Build Model
@@ -105,7 +105,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         test_accuracy   = np.zeros(shape[:2])
         train_loss      = np.zeros(shape[0])
         test_loss       = np.zeros(shape[0])
-        energy          = np.zeros(shape[0])
+        train_energy    = np.zeros(shape[0])
+        test_energy     = np.zeros(shape[0])
         z1              = np.zeros(shape[0])
         z2              = np.zeros(shape[0])
         time_ite        = np.zeros(shape[0])
@@ -118,7 +119,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     best_loss = train_l
                 if i%LOG_FREQ==0:
                     # Eval train
-                    _,train_a1,train_a3,train_a5,train_a7,_,_,_,_ = eval_function(x)
+                    train_ene,train_a1,train_a3,train_a5,train_a7,_,_,_,_ = eval_function(x)
                     train_a = np.array([train_a1,train_a3,train_a5,train_a7])
                     # Test
                     test_l, n = 0.0, 0
@@ -126,7 +127,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     for x_test, y_test in dataset.iter("test", batch_size):
                         l, _, _ = loss_function(x_test,prob_init*exp(i*log(decay_rate)))
                         test_l += l
-                        ene,acc1,acc3,acc5,acc7,_,_,_,_ = eval_function(x_test)
+                        test_ene,acc1,acc3,acc5,acc7,_,_,_,_ = eval_function(x_test)
                         test_a += np.array([acc1,acc3,acc5,acc7])
                         n += 1
                         if n==2:
@@ -143,7 +144,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     test_accuracy[(i)//LOG_FREQ] = test_a
                     train_loss[(i)//LOG_FREQ] = train_l
                     test_loss[(i)//LOG_FREQ] = test_l
-                    energy[(i)//LOG_FREQ] = ene
+                    train_energy[(i)//LOG_FREQ] = train_ene
+                    test_energy[(i)//LOG_FREQ] = test_ene
                     z1[(i)//LOG_FREQ] = Z1
                     z2[(i)//LOG_FREQ] = Z2
                     ti = time.time() - s
@@ -153,6 +155,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     save_np(test_accuracy,'test_acc',result_file)
                     save_np(train_loss,'train_loss',result_file)
                     save_np(test_loss,'test_loss',result_file)
+                    save_np(train_energy,'train_energy',result_file)
+                    save_np(test_energy,'test_energy',result_file)
                     save_np(z1,'z1',result_file)
                     save_np(z2,'z2',result_file)
                     save_np(time_ite,'time',result_file)
@@ -167,7 +171,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         # Reconstructing images after training ends
         _,_,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
         save_params([recon1,recon3,recon5,recon7], result_file + '_final_recons', date_time=False)
-        save_params([recon1,recon3,recon5,recon7], result_file + '_truex', date_time=False)
+        save_params([true_x], result_file + '_truex', date_time=False)
         # Save final params
         print("\nSaving weights..")
         if energy_type=='boltzman':
@@ -261,4 +265,4 @@ if __name__ == "__main__":
                                 archi=arch[energ],
                                 sampling_method=sampl,
                                 obj_fct=ob,
-                                mode="train")
+                                mode=options.mode)

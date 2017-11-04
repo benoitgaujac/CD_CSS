@@ -1,5 +1,6 @@
 import pdb
 import lasagne.updates as upd
+import lasagne.regularization as regularization
 import theano
 import theano.tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
@@ -14,6 +15,7 @@ from eval_fct import reconstruct_images
 
 srng = RandomStreams(100)
 np.random.seed(42)
+coef_regu = 0.5
 
 def build_model(X, obj_fct, alpha, sampling_method, p_flip,
                                                     num_steps_MC=1,
@@ -38,9 +40,14 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     # Sampling from Q
     samples, log_q, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, srng)
 
-    # Build loss function & updates dictionary
+    # Build loss function, regularization & updates dictionary
     loss, z1, z2 = objectives(X,samples,log_q,energy,E_data,obj_fct,approx_grad=True)
-    updates = upd.adam(-loss, params, learning_rate=alpha)
+    if obj_fct=='boltzman':
+        l2 = T.sum(T.sqr(params[0]))
+    else:
+        l2 = regularization.regularize_layer_params(l_out,l2)
+    L = -loss + coef_regu*l2
+    updates = upd.adam(L, params, learning_rate=alpha)
     updates.update(updts) #we need to ad the update dictionary
 
     # Evaluation
