@@ -42,7 +42,7 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
 
     # Build loss function, regularization & updates dictionary
     loss, z1, z2 = objectives(X,samples,log_q,energy,E_data,obj_fct,approx_grad=True)
-    if obj_fct=='boltzman':
+    if energy_type=='boltzman':
         l2_penalty = T.sum(T.sqr(params[0]))
     else:
         l2_penalty = regularize_layer_params(l_out,l2)
