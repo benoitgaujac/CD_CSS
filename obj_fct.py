@@ -47,7 +47,11 @@ def css_objective(true_x, q_sample, log_q, energy, E_data, approx_grad=True):
     # Calculate the objective
     m = zero_grad(T.max(e_p, axis=0))
     e_p = e_p - m
+    z_1 = T.mean(e_x)
+    z_2 = T.mean(e_q)
+    """
     z_1 = T.log(T.sum(T.exp(e_p[:e_x.shape[0]]), axis=0)) + m
     z_2 = T.log(T.sum(T.exp(e_p[e_x.shape[0]:]), axis=0)) + m
+    """
     logsumexp = T.log(T.sum(T.exp(e_p), axis=0)) + m
-    return T.mean(e_x) - logsumexp[0], z_1, z_2
+    return z_1 - logsumexp[0], z_1, z_2

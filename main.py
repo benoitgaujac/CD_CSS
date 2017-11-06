@@ -29,11 +29,11 @@ IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
 BATCH_SIZE = 50 # batch size
 NUM_EPOCH = 10
-LOG_FREQ = 64
+LOG_FREQ = 32
 NUM_RECON = 10
 IND_RECON = 2000
 LR = 0.00005
-RESULTS_DIR = "./results13" # Path to results
+RESULTS_DIR = "./results14" # Path to results
 if not os.path.exists(RESULTS_DIR):
     os.makedirs(RESULTS_DIR)
 PARAMS_SUBDIR = os.path.join(RESULTS_DIR,"weights") # Path to parameters
@@ -105,10 +105,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         test_accuracy   = np.zeros(shape[:2])
         train_loss      = np.zeros(shape[0])
         test_loss       = np.zeros(shape[0])
-        train_energy    = np.zeros(shape[0])
-        test_energy     = np.zeros(shape[0])
-        z1              = np.zeros(shape[0])
-        z2              = np.zeros(shape[0])
+        train_energy    = np.zeros((shape[0],2))
+        test_energy     = np.zeros((shape[0],2))
         time_ite        = np.zeros(shape[0])
         i, s = 0, time.time() #counter for iteration, time
         best_acc, best_loss = 0.0, -100.0
@@ -119,15 +117,15 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     best_loss = train_l
                 if i%LOG_FREQ==0:
                     # Eval train
-                    train_ene,train_a1,train_a3,train_a5,train_a7,_,_,_,_ = eval_function(x)
+                    train_a1,train_a3,train_a5,train_a7,_,_,_,_ = eval_function(x)
                     train_a = np.array([train_a1,train_a3,train_a5,train_a7])
                     # Test
                     test_l, n = 0.0, 0
                     test_a = np.zeros((len(fractions)))
                     for x_test, y_test in dataset.iter("test", batch_size):
-                        l, _, _ = loss_function(x_test,prob_init*exp(i*log(decay_rate)))
+                        l, z1, z2 = loss_function(x_test,prob_init*exp(i*log(decay_rate)))
                         test_l += l
-                        test_ene,acc1,acc3,acc5,acc7,_,_,_,_ = eval_function(x_test)
+                        acc1,acc3,acc5,acc7,_,_,_,_ = eval_function(x_test)
                         test_a += np.array([acc1,acc3,acc5,acc7])
                         n += 1
                         if n==2:
@@ -136,7 +134,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     test_l = test_l/float(n)
                     if test_a[-1]>best_acc:
                         best_acc = test_a[-1]
-                        _,_,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
+                        _,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
                         #save_params(np.split(recons,np.shape(recons)[0]), result_file + '_best_recons', date_time=False)
                         save_params([recon1,recon3,recon5,recon7], result_file + '_best_recons', date_time=False)
                     # Store info
@@ -144,10 +142,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     test_accuracy[(i)//LOG_FREQ] = test_a
                     train_loss[(i)//LOG_FREQ] = train_l
                     test_loss[(i)//LOG_FREQ] = test_l
-                    train_energy[(i)//LOG_FREQ] = train_ene
-                    test_energy[(i)//LOG_FREQ] = test_ene
-                    z1[(i)//LOG_FREQ] = Z1
-                    z2[(i)//LOG_FREQ] = Z2
+                    train_energy[(i)//LOG_FREQ] = np.asarray([Z1,Z2])
+                    test_energy[(i)//LOG_FREQ] = np.asarray([z1,z2])
                     ti = time.time() - s
                     time_ite[(i)//LOG_FREQ] = ti
                     # Save info
@@ -157,8 +153,6 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     save_np(test_loss,'test_loss',result_file)
                     save_np(train_energy,'train_energy',result_file)
                     save_np(test_energy,'test_energy',result_file)
-                    save_np(z1,'z1',result_file)
-                    save_np(z2,'z2',result_file)
                     save_np(time_ite,'time',result_file)
                     # log info
                     print("")
@@ -241,7 +235,6 @@ if __name__ == "__main__":
         dataset.data[k] = ((0.5 < dataset.data[k][0][:-1]).astype(theano.config.floatX),dataset.data[k][1][:-1])
     dataset.data["train"] = (dataset.data[k][0][:options.num_data],dataset.data[k][1][:options.num_data])
 
-
     """
     main(dataset,batch_size=options.BATCH_SIZE,
                 num_epochs=options.NUM_EPOCH,
@@ -254,8 +247,8 @@ if __name__ == "__main__":
 
     objectives = ['CD','CSS']
     ene = ['CONV_net','boltzman','FC_net']
-    samp = ['naive_taylor','stupid_q']
-    #samp = ['naive_taylor',]
+    #samp = ['naive_taylor','stupid_q']
+    samp = ['naive_taylor',]
     for sampl in samp:
         for energ in ene:
             for ob in objectives:

@@ -42,11 +42,15 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
 
     # Build loss function, regularization & updates dictionary
     loss, z1, z2 = objectives(X,samples,log_q,energy,E_data,obj_fct,approx_grad=True)
-    if energy_type=='boltzman':
+    if energy_type!='boltzman':
+        loss = loss-regularize_layer_params(l_out,l2)
+    """
         l2_penalty = T.sum(T.sqr(params[0]))
     else:
         l2_penalty = regularize_layer_params(l_out,l2)
     L = -loss + coef_regu*l2_penalty
+    """
+    L = -loss
     updates = upd.adam(L, params, learning_rate=alpha)
     updates.update(updts) #we need to ad the update dictionary
 
@@ -79,6 +83,6 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
 
     # Build theano function
     loss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2), updates=updates,on_unused_input='ignore')
-    eval_function = theano.function(inputs=[X], outputs=(T.mean(E_data),acc_01,acc_03,acc_05,acc_07,recon_01,recon_03,recon_05,recon_07))
+    eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_03,acc_05,acc_07,recon_01,recon_03,recon_05,recon_07))
 
     return loss_function, eval_function, l_out, params
