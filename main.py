@@ -33,7 +33,7 @@ LOG_FREQ = 32
 NUM_RECON = 10
 IND_RECON = 2000
 LR = 0.00005
-RESULTS_DIR = "./results14" # Path to results
+RESULTS_DIR = "./results17" # Path to results
 if not os.path.exists(RESULTS_DIR):
     os.makedirs(RESULTS_DIR)
 PARAMS_SUBDIR = os.path.join(RESULTS_DIR,"weights") # Path to parameters
@@ -51,9 +51,16 @@ CONV_net = {"conv":3,"nhidden_0":IM_SIZE,
             "noutput":1}
 arch = {"FC_net":FC_net, "CONV_net":CONV_net, "boltzman":FC_net}
 ######################################## helper ########################################
-def save_np(array,name,path):
+def save_np(array,name,path,column=False):
     file_name = path + '_' + name + '.csv'
-    df = pd.DataFrame(array)
+    if column:
+        shape = np.shape(array)
+        if shape[0]!=9:
+            raise ValueError("Wrong energies array shape. Should have dim0 = 9(1+4+4)")
+        columns = ['true_x', 'fin. recon w. 0.1', 'fin. recon w. 0.3', 'fin. recon w. 0.5', 'fin. recon w. 0.7', 'bes. recon w. 0.1', 'bes. recon w. 0.3', 'bes. recon w. 0.5', 'bes. recon w. 0.7']
+        df = pd.DataFrame(np.transpose(array),columns=columns)
+    else:
+        df = pd.DataFrame(array)
     df.to_csv(file_name)
 
 def save_params(params, filename, date_time=True):
@@ -163,7 +170,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     s = time.time()
                 i += 1
         # Reconstructing images after training ends
-        _,_,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
+        _,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
         save_params([recon1,recon3,recon5,recon7], result_file + '_final_recons', date_time=False)
         save_params([true_x], result_file + '_truex', date_time=False)
         # Save final params
@@ -212,7 +219,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         print("Reconstruction energies:")
         print(Efrecons[-1,:])
         # Save energies
-        save_np(np.concatenate((Edata,Efrecons,Ebrecons),axis=0),'energy',result_file)
+        save_np(np.concatenate((Edata,Efrecons,Ebrecons),axis=0),'energy',result_file,column=True)
 
 
 if __name__ == "__main__":
@@ -245,7 +252,7 @@ if __name__ == "__main__":
                 mode=options.mode)
     """
 
-    objectives = ['CD','CSS']
+    objectives = ['CD','CSS',]
     ene = ['CONV_net','boltzman','FC_net']
     #samp = ['naive_taylor','stupid_q']
     samp = ['naive_taylor',]
