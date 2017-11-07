@@ -1,6 +1,6 @@
 import pdb
 import lasagne.updates as upd
-from lasagne.regularization import regularize_layer_params, l2
+from lasagne.regularization import regularize_layer_params, regularize_layer_params_weighted, l2
 import theano
 import theano.tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
@@ -43,7 +43,12 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     # Build loss function, regularization & updates dictionary
     loss, z1, z2 = objectives(X,samples,log_q,energy,E_data,obj_fct,approx_grad=True)
     if energy_type!='boltzman':
-        loss = loss-regularize_layer_params(l_out,l2)
+        all_layers = lg.layers.get_all_layers(l_out)
+        layers={}
+        for i in range(len(all_layers)):
+            key = "layer" + str(i)
+            layers[key]=coef_regu
+        loss = loss-regularize_layer_params_weighted(layers,l2)
     """
         l2_penalty = T.sum(T.sqr(params[0]))
     else:
