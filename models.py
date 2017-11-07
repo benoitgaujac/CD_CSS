@@ -46,9 +46,8 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     if energy_type!='boltzman':
         all_layers = lasagne.layers.get_all_layers(l_out)
         layers={}
-        for i in range(len(all_layers)):
-            key = "layer" + str(i)
-            layers[key]=coef_regu
+        for i, layer in enumerate(all_layers):
+            layers[layer]=coef_regu
         loss = loss-regularize_layer_params_weighted(layers,l2)
     """
         l2_penalty = T.sum(T.sqr(params[0]))
