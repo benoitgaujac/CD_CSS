@@ -5,7 +5,7 @@ import theano
 import theano.tensor as T
 from theano.gradient import zero_grad
 
-from utils import build_taylor_q
+from utils import build_taylor_q, logsumexp
 
 eps=1e-6
 
@@ -22,7 +22,7 @@ def sampler(x, energy, E_data, num_steps, params, p_flip, sampling_method, srng)
     if sampling_method=="gibbs":
         samples, logq, updates = gibbs_sample(x, energy, num_steps, params, srng)
     elif sampling_method=="naive_taylor":
-        samples, logq, updates = taylor_sample(x, E_data, srng)
+        samples, logq, updates = taylor_sample(x, E_data, num_steps, srng)
     elif sampling_method=="stupid_q":
         samples, logq, updates = stupidq(x,p_flip,srng)
     else:
@@ -61,15 +61,37 @@ def gibbs_sample(X, energy, num_steps, params, srng):
 
     return q_samples, logq, updates
 
-def taylor_sample(X, E_data, srng):
+def taylor_sample(X, E_data, num_steps, srng):
     """
     Sample from taylor expansion of the energy.
+    -X:         batch x D
+    -E_data:    batch x 1
     """
-    q = build_taylor_q(X, E_data, srng)
-    q_sample = binary_sample(q.shape, q, srng=srng)
+    # Build density
+    means, pvals = build_taylor_q(X, E_data, srng) #shape: #shape: (batch,D), (batch,batch)
+
+    # Sampling component of the mixture. We need to expand dim for num of samples.
+    """
+    pvals_ext = T.repeat(pvals.dimshuffle(('x', 0, 1)), num_steps, axis=0) #shape: (num_steps,batch,batch)
+    means_ext = T.repeat(means.dimshuffle(('x', 0, 1)), num_steps, axis=0) #shape: (num_steps,batch,D)
+    pi = T.argmax(srng.multinomial(pvals=pvals_ext,
+                                   dtype=theano.config.floatX), axis=2) #shape: (num_steps,batch)
+    q = T.nnet.sigmoid(means_ext[pi]) #shape: (num_steps,batch,D)
+    """
+    pi = T.argmax(srng.multinomial(pvals=pvals,
+                                   dtype=theano.config.floatX), axis=1) #shape: (batch,)
+    q = T.nnet.sigmoid(means[pi]) #shape: (batch,D)
+    q_ext = T.repeat(q.dimshuffle(('x', 0, 1)), num_steps, axis=0) #shape: (num_steps,batch,D)
+    q_sample = binary_sample(q_ext.shape, q_ext, srng=srng) #shape: (num_steps,batch,D)
+
     # Calculate log[q(q_sample)]
-    q = q * (1.0 - 2*eps) + eps
-    log_q = - T.sum(T.nnet.binary_crossentropy(q, q_sample), axis=1,keepdims=True)
+    mix_comps = T.nnet.sigmoid(means.dimshuffle([0, "x", 1])) #shape: (batch,1,D)
+    X = X.dimshuffle(["x", 0, 1])  # (1, batch, D)
+    mix_comps = T.switch(T.eq(X, 0), 1 - mix_comps, mix_comps)  #shape: (batch, batch, D)
+    mix_comps = T.sum(T.log(mix_comps), axis=2)  #shape: (batch, batch)
+    log_q = logsumexp(mix_comps.T + T.log(pvals))  #shape: (batch,1)
+    #q = q * (1.0 - 2*eps) + eps
+    #log_q = - T.sum(T.nnet.binary_crossentropy(q, q_sample), axis=1,keepdims=True)
 
     return q_sample, log_q, dict()
 
