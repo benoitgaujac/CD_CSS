@@ -86,10 +86,11 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
 
     # Build theano learning function
     loss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2), updates=updates,on_unused_input='ignore')
-    eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_03,acc_05,acc_07,recon_01,recon_03,recon_05,recon_07))
+    #eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_03,acc_05,acc_07,recon_01,recon_03,recon_05,recon_07))
+    eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_05,acc_07,recon_01,recon_05,recon_07))
 
     # Logilike evaluation with 100N samples
-    sples, lq, _ = sampler(X, energy, E_data, 100*num_steps_MC, params, p_flip, sampling_method, srng)
+    sples, lq, _ = sampler(X, energy, E_data, 10*num_steps_MC, params, p_flip, sampling_method, srng)
     loss, z1, z2 = objectives(X,sples,lq,energy,E_data,obj_fct,approx_grad=True)
     loglike_eval = theano.function(inputs=[X], outputs=(loss,z1,z2), on_unused_input='ignore')
 

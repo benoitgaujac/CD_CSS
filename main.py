@@ -30,7 +30,7 @@ ene = ['CONV_net','boltzman']
 #samp = ['naive_taylor','stupid_q']
 samp = ['naive_taylor',]
 
-NUM_SAMPLES = [1,10,50] # Nb of sampling steps
+NUM_SAMPLES = [1,10,100] # Nb of sampling steps
 RECONSTRUCT_STEPS = 10 # Nb of Gibbs steps for reconstruction
 IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
@@ -41,7 +41,8 @@ NUM_RECON = 10
 IND_RECON = 2000
 LR = 0.00005
 
-fractions = [0.1,0.3,0.5,0.7]
+#fractions = [0.1,0.3,0.5,0.7]
+fractions = [0.1,0.5,0.7]
 for res_sum in range(25,50):
     RESULTS_DIR = "./results" + str(res_sum) # Path to results
     if not os.path.exists(RESULTS_DIR):
@@ -115,7 +116,7 @@ def create_subdirectory(DIR,SUBDIR,experiment=None):
 ######################################## Main ########################################
 def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='boltzman', archi=None, sampling_method='gibbs', num_samples=2, obj_fct="CD", mode="train"):
     # Create directories
-    experiment = obj_fct + "_" +energy_type + "_" + sampling_method + "_" + num_samples + " samples"
+    experiment = obj_fct + "_" +energy_type + "_" + sampling_method
     checkpoint_file, result_file = create_directory(num_samples,experiment)
 
     if mode=="train":
@@ -129,7 +130,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         # Input tensor
         X = T.matrix()
         # Build Model
-        print("\ncompiling model " + energy_type + " with " + sampling_method + " sampling for " + obj_fct + " objective...")
+        print("\ncompiling model " + energy_type + " with " + sampling_method + " sampling with " + str(num_samples) + "samples for " + obj_fct + " objective...")
         loss_function, eval_function, loglike_eval, l_out, params = build_model(X, obj_fct=obj_fct,
                                                                                     alpha=LR,
                                                                                     sampling_method=sampling_method,
@@ -149,7 +150,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         test_loss       = np.zeros(shape[0])
         eval_loglike    = np.zeros(shape[0])
         time_ite        = np.zeros(shape[0])
-        #norm_params     = np.zeros((shape[0],len(params)))
+        norm_params     = np.zeros((shape[0],len(params)))
         i, s = 0, time.time() #counter for iteration, time
         best_acc, best_loss = 0.0, -100.0
         for epoch in range(num_epochs):
@@ -158,16 +159,18 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                 if train_l>best_loss:
                     best_loss = train_l
                 if i%LOG_FREQ==0:
-                    """
                     # Compute params params norm
                     if energy_type=='boltzman':
-                        norm = [W.get_value().T*W.get_value() for W in params]
+                        norm = [np.sum(W.get_value()**2) for W in params]
                     elif energy_type[-3:]=='net':
-                        norm = [W.T*W for W in lg.layers.get_all_param_values(l_out)]
-                    """
+                        norm = [np.sum(W**2) for W in lg.layers.get_all_param_values(l_out)]
                     # Eval train
+                    """
                     train_a1,train_a3,train_a5,train_a7,_,_,_,_ = eval_function(x)
                     train_a = np.array([train_a1,train_a3,train_a5,train_a7])
+                    """
+                    train_a1,train_a5,train_a7,_,_,_ = eval_function(x)
+                    train_a = np.array([train_a1,train_a5,train_a7])
                     # Test
                     test_l, loglikelihood, n = 0.0, 0.0, 0
                     test_a = np.zeros((len(fractions)))
@@ -176,8 +179,12 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                         test_l += l
                         loglike, lz1, lz2 = loss_function(x_test,prob_init*exp(i*log(decay_rate)))
                         loglikelihood += loglike
+                        """
                         acc1,acc3,acc5,acc7,_,_,_,_ = eval_function(x_test)
                         test_a += np.array([acc1,acc3,acc5,acc7])
+                        """
+                        acc1,acc5,acc7,_,_,_ = eval_function(x_test)
+                        test_a += np.array([acc1,acc5,acc7])
                         n += 1
                         if n==2:
                             break
@@ -186,9 +193,12 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     loglikelihood = loglikelihood/float(n)
                     if test_a[-1]>best_acc:
                         best_acc = test_a[-1]
+                        """
                         _,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
-                        #save_params(np.split(recons,np.shape(recons)[0]), result_file + '_best_recons', date_time=False)
                         save_params([recon1,recon3,recon5,recon7], result_file + '_best_recons', date_time=False)
+                        """
+                        _,_,_,recon1,recon5,recon7 = eval_function(true_x)
+                        save_params([recon1,recon5,recon7], result_file + '_best_recons', date_time=False)
                     # Store info
                     train_accuracy[(i)//LOG_FREQ] = train_a
                     test_accuracy[(i)//LOG_FREQ] = test_a
@@ -199,7 +209,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     eval_loglike[(i)//LOG_FREQ] = loglikelihood
                     ti = time.time() - s
                     time_ite[(i)//LOG_FREQ] = ti
-                    #norm_params[(i)//LOG_FREQ] = norm
+                    norm_params[(i)//LOG_FREQ] = norm
                     # Save info
                     save_np(train_accuracy,'train_acc',result_file)
                     save_np(test_accuracy,'test_acc',result_file)
@@ -209,7 +219,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     save_np(test_loss,'test_loss',result_file)
                     save_np(eval_loglike,'eval_loglike',result_file)
                     save_np(time_ite,'time',result_file)
-                    #save_np(norm_params,'norm_params',result_file)
+                    save_np(norm_params,'norm_params',result_file)
                     # log info
                     print("")
                     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
@@ -219,8 +229,12 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     s = time.time()
                 i += 1
         # Reconstructing images after training ends
+        """
         _,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
         save_params([recon1,recon3,recon5,recon7], result_file + '_final_recons', date_time=False)
+        """
+        _,_,_,recon1,recon5,recon7 = eval_function(true_x)
+        save_params([recon1,recon5,recon7], result_file + '_final_recons', date_time=False)
         save_params([true_x], result_file + '_truex', date_time=False)
         # Save final params
         print("\nSaving weights..")
