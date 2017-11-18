@@ -23,8 +23,7 @@ from models import build_model
 from energy_fct import net_energy, botlmzan_energy
 from utils import build_net
 
-#objectives = ['CD','CSS',]
-objectives = ['CD',]
+objectives = ['CD','CSS',]
 #ene = ['CONV_net','boltzman','FC_net']
 ene = ['CONV_net','boltzman']
 #samp = ['naive_taylor','stupid_q']
@@ -43,7 +42,7 @@ LR = 0.00005
 
 #fractions = [0.1,0.3,0.5,0.7]
 fractions = [0.1,0.5,0.7]
-for res_sum in range(25,50):
+for res_sum in range(26,50):
     RESULTS_DIR = "./results" + str(res_sum) # Path to results
     if not os.path.exists(RESULTS_DIR):
         os.makedirs(RESULTS_DIR)
@@ -131,14 +130,14 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         X = T.matrix()
         # Build Model
         print("\ncompiling model " + energy_type + " with " + sampling_method + " sampling with " + str(num_samples) + "samples for " + obj_fct + " objective...")
-        loss_function, eval_function, loglike_eval, l_out, params = build_model(X, obj_fct=obj_fct,
-                                                                                    alpha=LR,
-                                                                                    sampling_method=sampling_method,
-                                                                                    p_flip = p_flip,
-                                                                                    num_steps_MC=num_samples,
-                                                                                    num_steps_reconstruct=RECONSTRUCT_STEPS,
-                                                                                    energy_type=energy_type,
-                                                                                    archi=archi)
+        debugf, trainloss_f, testloss_f, eval_f, l_out, params = build_model(X, obj_fct=obj_fct,
+                                                                                        alpha=LR,
+                                                                                        sampling_method=sampling_method,
+                                                                                        p_flip = p_flip,
+                                                                                        num_steps_MC=num_samples,
+                                                                                        num_steps_reconstruct=RECONSTRUCT_STEPS,
+                                                                                        energy_type=energy_type,
+                                                                                        archi=archi)
         # Training loop
         print("starting training...")
         shape = (num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1,len(fractions),NUM_RECON,D)
@@ -155,7 +154,9 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         best_acc, best_loss = 0.0, -100.0
         for epoch in range(num_epochs):
             for x, y in dataset.iter("train", batch_size):
-                train_l, Z1, Z2 = loss_function(x,prob_init*exp(i*log(decay_rate)))
+                #samples, log_q, E_samples = debugf(x,prob_init*exp(i*log(decay_rate)))
+                #pdb.set_trace()
+                train_l, Z1, Z2 = trainloss_f(x,prob_init*exp(i*log(decay_rate)))
                 if train_l>best_loss:
                     best_loss = train_l
                 if i%LOG_FREQ==0:
@@ -166,24 +167,23 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                         norm = [np.sum(W**2) for W in lg.layers.get_all_param_values(l_out)]
                     # Eval train
                     """
-                    train_a1,train_a3,train_a5,train_a7,_,_,_,_ = eval_function(x)
+                    train_a1,train_a3,train_a5,train_a7,_,_,_,_ = eval_f(x)
                     train_a = np.array([train_a1,train_a3,train_a5,train_a7])
                     """
-                    train_a1,train_a5,train_a7,_,_,_ = eval_function(x)
+                    train_a1,train_a5,train_a7,_,_,_ = eval_f(x)
                     train_a = np.array([train_a1,train_a5,train_a7])
                     # Test
                     test_l, loglikelihood, n = 0.0, 0.0, 0
                     test_a = np.zeros((len(fractions)))
                     for x_test, y_test in dataset.iter("test", batch_size):
-                        l, z1, z2 = loss_function(x_test,prob_init*exp(i*log(decay_rate)))
+                        l, z1, z2, loglike, lz1, lz2 = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
                         test_l += l
-                        loglike, lz1, lz2 = loss_function(x_test,prob_init*exp(i*log(decay_rate)))
                         loglikelihood += loglike
                         """
-                        acc1,acc3,acc5,acc7,_,_,_,_ = eval_function(x_test)
+                        acc1,acc3,acc5,acc7,_,_,_,_ = eval_f(x_test)
                         test_a += np.array([acc1,acc3,acc5,acc7])
                         """
-                        acc1,acc5,acc7,_,_,_ = eval_function(x_test)
+                        acc1,acc5,acc7,_,_,_ = eval_f(x_test)
                         test_a += np.array([acc1,acc5,acc7])
                         n += 1
                         if n==2:
@@ -194,10 +194,10 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     if test_a[-1]>best_acc:
                         best_acc = test_a[-1]
                         """
-                        _,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
+                        _,_,_,_,recon1,recon3,recon5,recon7 = eval_f(true_x)
                         save_params([recon1,recon3,recon5,recon7], result_file + '_best_recons', date_time=False)
                         """
-                        _,_,_,recon1,recon5,recon7 = eval_function(true_x)
+                        _,_,_,recon1,recon5,recon7 = eval_f(true_x)
                         save_params([recon1,recon5,recon7], result_file + '_best_recons', date_time=False)
                     # Store info
                     train_accuracy[(i)//LOG_FREQ] = train_a
@@ -230,10 +230,10 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                 i += 1
         # Reconstructing images after training ends
         """
-        _,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
+        _,_,_,_,recon1,recon3,recon5,recon7 = eval_f(true_x)
         save_params([recon1,recon3,recon5,recon7], result_file + '_final_recons', date_time=False)
         """
-        _,_,_,recon1,recon5,recon7 = eval_function(true_x)
+        _,_,_,recon1,recon5,recon7 = eval_f(true_x)
         save_params([recon1,recon5,recon7], result_file + '_final_recons', date_time=False)
         save_params([true_x], result_file + '_truex', date_time=False)
         # Save final params

@@ -83,5 +83,5 @@ def build_taylor_q(X, E_data, srng):
     pvals = T.nnet.softmax(E_data.reshape((1, -1))) #shape: (1,batch)
     pvals = T.repeat(pvals, X.shape[0], axis=0) #shape: (batch,batch)
     # Mean of bernoulli.
-    means = T.grad(T.sum(E_data), X) #shape: (batch x D)
+    means = T.grad(T.sum(E_data), X) #shape: (batch,D)
     return means, pvals
