@@ -82,7 +82,7 @@ def taylor_sample(X, E_data, num_steps, srng):
     # Calculate log[q(q_sample)]
     log_qx = -(T.nnet.binary_crossentropy(means, q_sample)) #shape: (num_steps*batch,D)
     #log_qn = T.repeat(T.log(pvals[0]).T.dimshuffle([0,"x"]),num_steps, axis=0) #shape: (num_steps*batch,1)
-    log_qn = -T.log(log_qx.shape[0])#shape: (1,)
+    log_qn = -T.log(X.shape[0])#shape: (1,)
 
     log_q = logsumexp(log_qx + log_qn)  #shape: (batch,1)
 
