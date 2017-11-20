@@ -162,7 +162,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                 if i%LOG_FREQ==0:
                     # Compute params params norm
                     if energy_type=='boltzman':
-                        norm = [np.sum(W.get_value()**2)/float(W.size) for W in params]
+                        norm = [np.sum(W.get_value()**2)/float(W.get_value().size) for W in params]
                     elif energy_type[-3:]=='net':
                         norm = [np.sum(W**2)/float(W.size) for W in lg.layers.get_all_param_values(l_out)]
                     # Eval train
