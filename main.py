@@ -306,6 +306,7 @@ if __name__ == "__main__":
         dataset.data[k] = ((0.5 < dataset.data[k][0][:-1]).astype(theano.config.floatX),dataset.data[k][1][:-1])
     dataset.data["train"] = (dataset.data[k][0][:options.num_data],dataset.data[k][1][:options.num_data])
 
+    """
     main(dataset,batch_size=options.BATCH_SIZE,
                 num_epochs=options.NUM_EPOCH,
                 energy_type=options.energy,
@@ -328,4 +329,3 @@ if __name__ == "__main__":
                                     num_samples=nsampl,
                                     obj_fct=ob,
                                     mode=options.mode)
-    """
