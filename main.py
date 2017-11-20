@@ -162,9 +162,9 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                 if i%LOG_FREQ==0:
                     # Compute params params norm
                     if energy_type=='boltzman':
-                        norm = [np.sum(W.get_value()**2) for W in params]
+                        norm = [np.sum(W.get_value()**2)/float(W.size) for W in params]
                     elif energy_type[-3:]=='net':
-                        norm = [np.sum(W**2) for W in lg.layers.get_all_param_values(l_out)]
+                        norm = [np.sum(W**2)/float(W.size) for W in lg.layers.get_all_param_values(l_out)]
                     # Eval train
                     """
                     train_a1,train_a3,train_a5,train_a7,_,_,_,_ = eval_f(x)
@@ -306,7 +306,6 @@ if __name__ == "__main__":
         dataset.data[k] = ((0.5 < dataset.data[k][0][:-1]).astype(theano.config.floatX),dataset.data[k][1][:-1])
     dataset.data["train"] = (dataset.data[k][0][:options.num_data],dataset.data[k][1][:options.num_data])
 
-    """
     main(dataset,batch_size=options.BATCH_SIZE,
                 num_epochs=options.NUM_EPOCH,
                 energy_type=options.energy,
@@ -317,7 +316,7 @@ if __name__ == "__main__":
                 mode=options.mode)
     """
 
-    for nsampl in NUM_SAMPLES:
+    for nsampl in NUM_SAMPLES.reverse():
         for sampl in samp:
             for energ in ene:
                 for ob in objectives:
@@ -329,3 +328,4 @@ if __name__ == "__main__":
                                     num_samples=nsampl,
                                     obj_fct=ob,
                                     mode=options.mode)
+    """
