@@ -38,7 +38,7 @@ def css_objective(q_samples, log_q, E_data, E_samples, approx_grad=True):
         log_q = zero_grad(log_q)
 
     # Expand the energy for the Q samples
-    e_q = E_samples - log_q#shape: (nsamples*batch,1)
+    e_q = E_samples - log_q - T.log(T.cast(log_q.shape[0], theano.config.floatX)) #shape: (nsamples*batch,1)
     e_x = E_data #shape: (batch,1)
 
     # Concatenate energies
