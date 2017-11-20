@@ -29,7 +29,7 @@ ene = ['CONV_net','boltzman']
 #samp = ['naive_taylor','stupid_q']
 samp = ['naive_taylor',]
 
-NUM_SAMPLES = [1,10,100] # Nb of sampling steps
+NUM_SAMPLES = [1,10,20] # Nb of sampling steps
 RECONSTRUCT_STEPS = 10 # Nb of Gibbs steps for reconstruction
 IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension

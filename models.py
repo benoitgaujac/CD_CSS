@@ -59,7 +59,7 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     updates.update(updts) #we need to ad the update dictionary
 
     # Logilike evaluation with 10N samples
-    samples_10, logq_10, _ = sampler(X, energy, E_data, 10*num_steps_MC, params, p_flip, sampling_method, srng)
+    samples_10, logq_10, _ = sampler(X, energy, E_data, 50*num_steps_MC, params, p_flip, sampling_method, srng)
     E_samples_10 = energy(samples_10)
     loss_10, z1_10, z2_10 = objectives(samples_10,logq_10,E_data,E_samples_10,obj_fct,approx_grad=True)
 
