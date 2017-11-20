@@ -317,7 +317,7 @@ if __name__ == "__main__":
                 mode=options.mode)
     """
 
-    for nsampl in NUM_SAMPLES.reverse():
+    for nsampl in NUM_SAMPLES[::-1]:
         for sampl in samp:
             for energ in ene:
                 for ob in objectives:
