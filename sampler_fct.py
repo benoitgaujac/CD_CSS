@@ -70,7 +70,7 @@ def taylor_sample(X, E_data, num_steps, srng):
     # Build density
     means, pvals = build_taylor_q(X, E_data, srng) #shape: #shape: (batch,D), (batch,batch)
     means = T.repeat(T.nnet.sigmoid(means), num_steps, axis=0) #shape: (num_steps*batch,D)
-    pvals = T.repeat(pvals,, num_steps, axis=0) #shape: (num_steps*batch,D)
+    pvals = T.repeat(pval,, num_steps, axis=0) #shape: (num_steps*batch,D)
 
     # Sampling component of the mixture. We need to expand dim for num of samples.
     pi = T.argmax(srng.multinomial(pvals=pvals,
