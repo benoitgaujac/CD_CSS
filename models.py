@@ -45,23 +45,21 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     E_samples =energy(samples)
 
     # Build loss function, regularization & updates dictionary
-    loss, z1, z2 = objectives(samples,log_q,E_data,E_samples,obj_fct,approx_grad=True)
+    loss, z1, z2 = objectives(E_data,E_samples,log_q,obj_fct,approx_grad=True)
     if regularization and energy_type!='boltzman':
         all_layers = lasagne.layers.get_all_layers(l_out)
         layers={}
         for i, layer in enumerate(all_layers):
             layers[layer]=coef_regu
-        regu = regularize_layer_params_weighted(layers,l2)
-        #regu = coef_regu*regularize_layer_params(l_out,l2)
-    else:
-        regu = T.zeros_like(loss)
-    updates = upd.adam(-loss+regu, params, learning_rate=alpha)
+        loss = loss - regularize_layer_params_weighted(layers,l2)
+        #loss = loss coef_regu*regularize_layer_params(l_out,l2)
+    updates = upd.adam(-loss, params, learning_rate=alpha)
     updates.update(updts) #we need to ad the update dictionary
 
     # Logilike evaluation with 10N samples
     samples_10, logq_10, _ = sampler(X, energy, E_data, 50*num_steps_MC, params, p_flip, sampling_method, srng)
     E_samples_10 = energy(samples_10)
-    loss_10, z1_10, z2_10 = objectives(samples_10,logq_10,E_data,E_samples_10,obj_fct,approx_grad=True)
+    loss_10, z1_10, z2_10 = objectives(E_data,E_samples_10,logq_10,obj_fct,approx_grad=True)
 
     # Evaluation (you lazy)
     recon_01, acc_01 = reconstruct_images(X, num_steps=num_steps_reconstruct,
@@ -96,9 +94,9 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     #eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_03,acc_05,acc_07,recon_01,recon_03,recon_05,recon_07))
     eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_05,acc_07,recon_01,recon_05,recon_07))
 
-    #loglike_eval = theano.function(inputs=[X], outputs=(loss_10,z1_10,z2_10), on_unused_input='ignore')
-
+    """
     # Debug Function
     debugf = theano.function(inputs=[X,p_flip], outputs=(samples_10, logq_10, E_samples),on_unused_input='ignore')
+    """
 
-    return debugf, trainloss_function, testloss_function, eval_function, l_out, params
+    return trainloss_function, testloss_function, eval_function, l_out, params
