@@ -42,7 +42,7 @@ LR = 0.00005
 
 #fractions = [0.1,0.3,0.5,0.7]
 fractions = [0.1,0.5,0.7]
-for res_sum in range(26,50):
+for res_sum in range(33,50):
     RESULTS_DIR = "./results" + str(res_sum) # Path to results
     if not os.path.exists(RESULTS_DIR):
         os.makedirs(RESULTS_DIR)
