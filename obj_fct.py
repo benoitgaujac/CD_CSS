@@ -9,13 +9,13 @@ eps=1e-6
 
 def objectives(E_data,E_samples,log_q,obj_fct,approx_grad=True):
     if obj_fct=='CD':
-        l, z1, z2 = cd_objective(E_data, E_samples)
+        l, logz, z1, z2 = cd_objective(E_data, E_samples)
     elif obj_fct=='CSS':
-        l, z1, z2 = css_objective(E_data, E_samples, log_q, approx_grad)
+        l, logz, z1, z2 = css_objective(E_data, E_samples, log_q, approx_grad)
     else:
         raise ValueError("Incorrect objective function. Not CD nor CSS.")
 
-    return l, z1, z2
+    return l, logz, z1, z2
 
 def cd_objective(E_data, E_samples):
     """
@@ -23,7 +23,7 @@ def cd_objective(E_data, E_samples):
     """
     z1 = T.mean(E_data)
     z2 = T.mean(E_samples)
-    return z1 - z2, z1, z2
+    return z1 - z2, z2, z1, z2
 
 
 def css_objective(E_data, E_samples, log_q, approx_grad=True):
@@ -53,5 +53,16 @@ def css_objective(E_data, E_samples, log_q, approx_grad=True):
     z_1 = T.log(T.sum(T.exp(e_p[:e_x.shape[0]]), axis=0)) + m
     z_2 = T.log(T.sum(T.exp(e_p[e_x.shape[0]:]), axis=0)) + m
     """
-    logsumexp = T.log(T.sum(T.exp(e_p), axis=0)) + m
-    return z_1 - logsumexp[0], z_1, z_2
+    logsumexp = T.log(T.sum(T.exp(e_p), axis=0)) + m # log(Z_est)
+    return z_1 - logsumexp[0], logsumexp[0], z_1, z_2
+
+def variance_estimator(logZ,E_samples,logq):
+    """
+    Empirical variance estimator.
+    -logZ:          log[Z_est] 1,
+    -E_samples:     E(X_samples) Energy of the samples (NxS)x1
+    -log_q:         log[q(q_sample)] (NxS)x1
+    """
+    sqr_diff = T.sqr(T.exp(E_samples-logq)-T.exp(logZ)) #shape: (nsamples*batch,1)
+
+    return T.sum(sqr_diff)/(E_samples.shape[0]-1)

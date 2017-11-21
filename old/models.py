@@ -11,13 +11,12 @@ from functools import partial
 import utils as u
 from energy_fct import build_energy
 from sampler_fct import sampler
-from obj_fct import objectives, variance_estimator
+from obj_fct import objectives
 from eval_fct import reconstruct_images
 
 srng = RandomStreams(100)
 np.random.seed(42)
-coef_regu = 0.0
-regularization=False
+coef_regu = 10.0
 
 def build_model(X, obj_fct, alpha, sampling_method, p_flip,
                                                     num_steps_MC=1,
@@ -39,31 +38,29 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     # Build energy
     l_out, params, energy = build_energy(X,energy_type,archi)
     E_data = energy(X)
-
     # Sampling from Q
-    samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, srng)
-    E_samples =energy(samples)
+    samples, log_q, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, srng)
 
-    # Build loss function, variance estimator, regularization & updates dictionary
-    loss, logZ, z1, z2 = objectives(E_data,E_samples,logq,obj_fct,approx_grad=True)
-    sigma = variance_estimator(logZ,E_samples,logq)
-    if regularization and energy_type!='boltzman':
+    # Build loss function, regularization & updates dictionary
+    loss, z1, z2 = objectives(X,samples,log_q,energy,E_data,obj_fct,approx_grad=True)
+    if energy_type!='boltzman':
         all_layers = lasagne.layers.get_all_layers(l_out)
         layers={}
         for i, layer in enumerate(all_layers):
             layers[layer]=coef_regu
-        loss = loss - regularize_layer_params_weighted(layers,l2)
-        #loss = loss coef_regu*regularize_layer_params(l_out,l2)
-    updates = upd.adam(-loss, params, learning_rate=alpha)
+        loss = loss-regularize_layer_params_weighted(layers,l2)
+        #loss = loss - coef_regu*regularize_layer_params(l_out,l2)
+    """
+        l2_penalty = T.sum(T.sqr(params[0]))
+    else:
+        l2_penalty = regularize_layer_params(l_out,l2)
+    L = -loss + coef_regu*l2_penalty
+    """
+    L = -loss
+    updates = upd.adam(L, params, learning_rate=alpha)
     updates.update(updts) #we need to ad the update dictionary
 
-    # Logilike & variance evaluation with 10N samples
-    samples_10, logq_10, _ = sampler(X, energy, E_data, 50*num_steps_MC, params, p_flip, sampling_method, srng)
-    E_samples_10 = energy(samples_10)
-    loss_10, logZ_10, z1_10, z2_10 = objectives(E_data,E_samples_10,logq_10,obj_fct,approx_grad=True)
-    sigma_10 = variance_estimator(logZ_10,E_samples_10,logq_10)
-
-    # Evaluation (you lazy)
+    # Evaluation
     recon_01, acc_01 = reconstruct_images(X, num_steps=num_steps_reconstruct,
                                                         params=params,
                                                         energy=energy,
@@ -90,15 +87,8 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
                                                         fraction=0.7,
                                                         D=784)
 
-    # Build theano learning function
-    trainloss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2,sigma), updates=updates,on_unused_input='ignore')
-    testloss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2,sigma,loss_10,z1_10,z2_10,sigma_10),on_unused_input='ignore')
-    #eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_03,acc_05,acc_07,recon_01,recon_03,recon_05,recon_07))
-    eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_05,acc_07,recon_01,recon_05,recon_07))
+    # Build theano function
+    loss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2), updates=updates,on_unused_input='ignore')
+    eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_03,acc_05,acc_07,recon_01,recon_03,recon_05,recon_07))
 
-    """
-    # Debug Function
-    debugf = theano.function(inputs=[X,p_flip], outputs=(samples_10, logq_10, E_samples),on_unused_input='ignore')
-    """
-
-    return trainloss_function, testloss_function, eval_function, l_out, params
+    return loss_function, eval_function, l_out, params
