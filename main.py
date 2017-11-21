@@ -90,17 +90,6 @@ def create_directory(samples,experiment):
 
     return checkpoint_file, result_file
 
-"""
-    PARAMS_SUBDIR = os.path.join(RESULTS_DIR,"weights") # Path to parameters
-    if not os.path.exists(PARAMS_SUBDIR):
-        os.makedirs(PARAMS_SUBDIR)
-    checkpoint_file = os.path.join(PARAMS_SUBDIR,experiment)
-    LOG_SUBDIR = os.path.join(RESULTS_DIR,"log") # Path to log
-    if not os.path.exists(LOG_SUBDIR):
-        os.makedirs(LOG_SUBDIR)
-    result_file = os.path.join(LOG_SUBDIR,experiment)
-"""
-
 def create_subdirectory(DIR,SUBDIR,experiment=None):
     sub = os.path.join(DIR,SUBDIR) # Path to sub
     if not os.path.exists(sub):
@@ -130,14 +119,14 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         X = T.matrix()
         # Build Model
         print("\ncompiling model " + energy_type + " with " + sampling_method + " sampling with " + str(num_samples) + "samples for " + obj_fct + " objective...")
-        debugf, trainloss_f, testloss_f, eval_f, l_out, params = build_model(X, obj_fct=obj_fct,
-                                                                                        alpha=LR,
-                                                                                        sampling_method=sampling_method,
-                                                                                        p_flip = p_flip,
-                                                                                        num_steps_MC=num_samples,
-                                                                                        num_steps_reconstruct=RECONSTRUCT_STEPS,
-                                                                                        energy_type=energy_type,
-                                                                                        archi=archi)
+        trainloss_f, testloss_f, eval_f, l_out, params = build_model(X, obj_fct=obj_fct,
+                                                                        alpha=LR,
+                                                                        sampling_method=sampling_method,
+                                                                        p_flip = p_flip,
+                                                                        num_steps_MC=num_samples,
+                                                                        num_steps_reconstruct=RECONSTRUCT_STEPS,
+                                                                        energy_type=energy_type,
+                                                                        archi=archi)
         # Training loop
         print("starting training...")
         shape = (num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1,len(fractions),NUM_RECON,D)
@@ -154,8 +143,6 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         best_acc, best_loss = 0.0, -100.0
         for epoch in range(num_epochs):
             for x, y in dataset.iter("train", batch_size):
-                #samples, log_q, E_samples = debugf(x,prob_init*exp(i*log(decay_rate)))
-                #pdb.set_trace()
                 train_l, Z1, Z2 = trainloss_f(x,prob_init*exp(i*log(decay_rate)))
                 if train_l>best_loss:
                     best_loss = train_l
