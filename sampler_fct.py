@@ -68,7 +68,7 @@ def taylor_sample(X, E_data, num_steps, srng):
     -E_data:    batch x 1
     """
     # Build density
-    means, pvals = build_taylor_q(X, E_data, srng) #shape: #shape: (batch,D), (batch,batch)
+    means, pvals = build_taylor_q(X, E_data) #shape: #shape: (batch,D), (batch,batch)
     means = T.repeat(T.nnet.sigmoid(means), num_steps, axis=0) #shape: (num_steps*batch,D)
     pvals = T.repeat(pvals, num_steps, axis=0) #shape: (num_steps*batch,D)
 
