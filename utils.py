@@ -82,7 +82,7 @@ def build_taylor_q(X, E_data, uniform=True):
     # Responsability of each  mixtures.
     if uniform:
         # uniform mixture weights
-        pvals = T.ones_like(E_data.reshape((1, -1)))
+        pvals = T.mean(T.ones_like(E_data.reshape((1, -1))),axis=-1,keepdims=True)
     else:
         # mixture components distributed as softmax(E(xn))
         pvals = T.nnet.softmax(E_data.reshape((1, -1))) #shape: (1,batch)
