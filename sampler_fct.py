@@ -72,7 +72,7 @@ def taylor_sample(X, E_data, num_steps, srng):
     means = T.repeat(T.nnet.sigmoid(means), num_steps, axis=0) #shape: (num_steps*batch,D)
     pvals = T.repeat(pvals, num_steps, axis=0) #shape: (num_steps*batch,D)
 
-    # Sampling component of the mixture. We need to expand dim for num of samples.
+    # Sampling component of the mixture.
     pi = T.argmax(srng.multinomial(pvals=pvals,
                                    dtype=theano.config.floatX), axis=1) #shape: (num_steps*batch,)
     q = T.nnet.sigmoid(means)[pi] #shape: (num_steps*batch,D)

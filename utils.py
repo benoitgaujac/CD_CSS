@@ -73,14 +73,19 @@ def build_net(architecture, energy_type='FC_net'):
     return l_out
 
 ######################################## Sampling ########################################
-def build_taylor_q(X, E_data, srng):
+def build_taylor_q(X, E_data, uniform=True, srng):
     """
     Build the taylor expansion of the energy for bernoulli mixtures of batch mixtures.
     -X:         batch x D
     -E_data:    batch x 1
     """
     # Responsability of each  mixtures.
-    pvals = T.nnet.softmax(E_data.reshape((1, -1))) #shape: (1,batch)
+    if uniform:
+        # uniform mixture weights
+        pvals = T.ones_like(E_data.reshape((1, -1)))
+    else:
+        # mixture components distributed as softmax(E(xn))
+        pvals = T.nnet.softmax(E_data.reshape((1, -1))) #shape: (1,batch)
     pvals = T.repeat(pvals, X.shape[0], axis=0) #shape: (batch,batch)
     # Mean of bernoulli.
     means = T.grad(T.sum(E_data), X) #shape: (batch,D)
