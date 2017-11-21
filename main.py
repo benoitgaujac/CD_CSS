@@ -23,23 +23,32 @@ from models import build_model
 from energy_fct import net_energy, botlmzan_energy
 from utils import build_net
 
-CD_STEPS = 1 # Nb of sampling steps
+objectives = ['CD','CSS',]
+#ene = ['CONV_net','boltzman','FC_net']
+ene = ['CONV_net','boltzman']
+#samp = ['naive_taylor','stupid_q']
+samp = ['naive_taylor',]
+
+NUM_SAMPLES = [1,10,20] # Nb of sampling steps
 RECONSTRUCT_STEPS = 10 # Nb of Gibbs steps for reconstruction
 IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
-BATCH_SIZE = 50 # batch size
+BATCH_SIZE = 32 # batch size
 NUM_EPOCH = 10
 LOG_FREQ = 32
 NUM_RECON = 10
 IND_RECON = 2000
 LR = 0.00005
-RESULTS_DIR = "./results17" # Path to results
-if not os.path.exists(RESULTS_DIR):
-    os.makedirs(RESULTS_DIR)
-PARAMS_SUBDIR = os.path.join(RESULTS_DIR,"weights") # Path to parameters
-LOG_SUBDIR = os.path.join(RESULTS_DIR,"log") # Path to log
 
-fractions = [0.1,0.3,0.5,0.7]
+#fractions = [0.1,0.3,0.5,0.7]
+fractions = [0.1,0.5,0.7]
+for res_sum in range(33,50):
+    RESULTS_DIR = "./results" + str(res_sum) # Path to results
+    if not os.path.exists(RESULTS_DIR):
+        os.makedirs(RESULTS_DIR)
+        break
+if res_sum==50:
+    raise ValueError("Too many results dir. Clean your shits.")
 
 ######################################## Models architectures ########################################
 FC_net = {"hidden":3,"nhidden_0":D,"nhidden_1":1024,"nhidden_2":2048,"nhidden_3":2048,"noutput":1}
@@ -74,16 +83,29 @@ def load_data(FILE_PATH):
         x = np.asarray(cPickle.load(f))
     return x
 
+def create_directory(samples,experiment):
+    samples_dir,_ = create_subdirectory(RESULTS_DIR,str(samples) + 'samples')
+    _,checkpoint_file = create_subdirectory(samples_dir,"weights",experiment)
+    _,result_file = create_subdirectory(samples_dir,"log",experiment)
+
+    return checkpoint_file, result_file
+
+def create_subdirectory(DIR,SUBDIR,experiment=None):
+    sub = os.path.join(DIR,SUBDIR) # Path to sub
+    if not os.path.exists(sub):
+        os.makedirs(sub)
+    if experiment!=None:
+        result_file = os.path.join(sub,experiment)
+    else:
+        result_file = '_'
+    return sub,result_file
+
+
 ######################################## Main ########################################
-def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='boltzman', archi=None, sampling_method='gibbs', obj_fct="CD", mode="train"):
+def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='boltzman', archi=None, sampling_method='gibbs', num_samples=2, obj_fct="CD", mode="train"):
     # Create directories
     experiment = obj_fct + "_" +energy_type + "_" + sampling_method
-    if not os.path.exists(PARAMS_SUBDIR):
-        os.makedirs(PARAMS_SUBDIR)
-    checkpoint_file = os.path.join(PARAMS_SUBDIR,experiment)
-    if not os.path.exists(LOG_SUBDIR):
-        os.makedirs(LOG_SUBDIR)
-    result_file = os.path.join(LOG_SUBDIR,experiment)
+    checkpoint_file, result_file = create_directory(num_samples,experiment)
 
     if mode=="train":
         # Image to visualize reconstruction
@@ -96,85 +118,125 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         # Input tensor
         X = T.matrix()
         # Build Model
-        print("\ncompiling model " + energy_type + " with " + sampling_method + " sampling for " + obj_fct + " objective...")
-        loss_function, eval_function, l_out, params = build_model(X, obj_fct=obj_fct,
-                                                                            alpha=LR,
-                                                                            sampling_method=sampling_method,
-                                                                            p_flip = p_flip,
-                                                                            num_steps_MC=CD_STEPS,
-                                                                            num_steps_reconstruct=RECONSTRUCT_STEPS,
-                                                                            energy_type=energy_type,
-                                                                            archi=archi)
+        print("\ncompiling model " + energy_type + " with " + sampling_method + " sampling with " + str(num_samples) + "samples for " + obj_fct + " objective...")
+        trainloss_f, testloss_f, eval_f, l_out, params = build_model(X, obj_fct=obj_fct,
+                                                                        alpha=LR,
+                                                                        sampling_method=sampling_method,
+                                                                        p_flip = p_flip,
+                                                                        num_steps_MC=num_samples,
+                                                                        num_steps_reconstruct=RECONSTRUCT_STEPS,
+                                                                        energy_type=energy_type,
+                                                                        archi=archi)
         # Training loop
-        print("starting training...")
+        print("\nstarting training...")
         shape = (num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1,len(fractions),NUM_RECON,D)
         train_accuracy  = np.zeros(shape[:2])
         test_accuracy   = np.zeros(shape[:2])
-        train_loss      = np.zeros(shape[0])
-        test_loss       = np.zeros(shape[0])
         train_energy    = np.zeros((shape[0],2))
         test_energy     = np.zeros((shape[0],2))
+        train_loss      = np.zeros(shape[0])
+        test_loss       = np.zeros(shape[0])
+        train_sigma     = np.zeros(shape[0])
+        test_sigma      = np.zeros(shape[0])
+        eval_loglike    = np.zeros(shape[0])
+        eval_sigma      = np.zeros(shape[0])
         time_ite        = np.zeros(shape[0])
+        norm_params     = np.zeros((shape[0],len(params)))
         i, s = 0, time.time() #counter for iteration, time
         best_acc, best_loss = 0.0, -100.0
         for epoch in range(num_epochs):
             for x, y in dataset.iter("train", batch_size):
-                train_l, Z1, Z2 = loss_function(x,prob_init*exp(i*log(decay_rate)))
+                train_l, Z1, Z2, Sigma = trainloss_f(x,prob_init*exp(i*log(decay_rate)))
                 if train_l>best_loss:
                     best_loss = train_l
                 if i%LOG_FREQ==0:
+                    # Compute params params norm
+                    if energy_type=='boltzman':
+                        norm = [np.sum(W.get_value()**2)/float(W.get_value().size) for W in params]
+                    elif energy_type[-3:]=='net':
+                        norm = [np.sum(W**2)/float(W.size) for W in lg.layers.get_all_param_values(l_out)]
                     # Eval train
-                    train_a1,train_a3,train_a5,train_a7,_,_,_,_ = eval_function(x)
+                    """
+                    train_a1,train_a3,train_a5,train_a7,_,_,_,_ = eval_f(x)
                     train_a = np.array([train_a1,train_a3,train_a5,train_a7])
+                    """
+                    train_a1,train_a5,train_a7,_,_,_ = eval_f(x)
+                    train_a = np.array([train_a1,train_a5,train_a7])
                     # Test
-                    test_l, n = 0.0, 0
+                    test_l, loglikelihood, sigma, lsigma, n = 0.0, 0.0, 0.0, 0.0, 0
                     test_a = np.zeros((len(fractions)))
                     for x_test, y_test in dataset.iter("test", batch_size):
-                        l, z1, z2 = loss_function(x_test,prob_init*exp(i*log(decay_rate)))
+                        l, z1, z2, sig, loglike, lz1, lz2, lsig = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
                         test_l += l
-                        acc1,acc3,acc5,acc7,_,_,_,_ = eval_function(x_test)
+                        loglikelihood += loglike
+                        sigma += sig
+                        lsigma += lsig
+                        """
+                        acc1,acc3,acc5,acc7,_,_,_,_ = eval_f(x_test)
                         test_a += np.array([acc1,acc3,acc5,acc7])
+                        """
+                        acc1,acc5,acc7,_,_,_ = eval_f(x_test)
+                        test_a += np.array([acc1,acc5,acc7])
                         n += 1
                         if n==2:
                             break
                     test_a = test_a/float(n)
                     test_l = test_l/float(n)
+                    loglikelihood = loglikelihood/float(n)
+                    sigma = sigma/float(n)
+                    lsigma = lsigma/float(n)
                     if test_a[-1]>best_acc:
                         best_acc = test_a[-1]
-                        _,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
-                        #save_params(np.split(recons,np.shape(recons)[0]), result_file + '_best_recons', date_time=False)
+                        """
+                        _,_,_,_,recon1,recon3,recon5,recon7 = eval_f(true_x)
                         save_params([recon1,recon3,recon5,recon7], result_file + '_best_recons', date_time=False)
+                        """
+                        _,_,_,recon1,recon5,recon7 = eval_f(true_x)
+                        save_params([recon1,recon5,recon7], result_file + '_best_recons', date_time=False)
                     # Store info
                     train_accuracy[(i)//LOG_FREQ] = train_a
                     test_accuracy[(i)//LOG_FREQ] = test_a
-                    train_loss[(i)//LOG_FREQ] = train_l
-                    test_loss[(i)//LOG_FREQ] = test_l
                     train_energy[(i)//LOG_FREQ] = np.asarray([Z1,Z2])
                     test_energy[(i)//LOG_FREQ] = np.asarray([z1,z2])
+                    train_loss[(i)//LOG_FREQ] = train_l
+                    test_loss[(i)//LOG_FREQ] = test_l
+                    train_sigma[(i)//LOG_FREQ] = Sigma
+                    test_sigma[(i)//LOG_FREQ] = sigma
+                    eval_loglike[(i)//LOG_FREQ] = loglikelihood
+                    eval_sigma[(i)//LOG_FREQ] = lsigma
                     ti = time.time() - s
                     time_ite[(i)//LOG_FREQ] = ti
+                    norm_params[(i)//LOG_FREQ] = norm
                     # Save info
                     save_np(train_accuracy,'train_acc',result_file)
                     save_np(test_accuracy,'test_acc',result_file)
-                    save_np(train_loss,'train_loss',result_file)
-                    save_np(test_loss,'test_loss',result_file)
                     save_np(train_energy,'train_energy',result_file)
                     save_np(test_energy,'test_energy',result_file)
+                    save_np(train_loss,'train_loss',result_file)
+                    save_np(test_loss,'test_loss',result_file)
+                    save_np(train_sigma,'train_sigma',result_file)
+                    save_np(test_sigma,'test_sigma',result_file)
+                    save_np(eval_loglike,'eval_loglike',result_file)
+                    save_np(eval_sigma,'eval_sigma',result_file)
                     save_np(time_ite,'time',result_file)
+                    save_np(norm_params,'norm_params',result_file)
                     # log info
-                    print("")
                     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
                     print("[{:.3f}s]iteration {}".format(ti, i+1))
                     print("train loss: {:.3e}, test loss: {:.3f}".format(float(train_l),float(test_l)))
-                    print("train acc: {:.3f}%, test acc: {:.3f}%".format(100.0*train_a[-1],100.0*test_a[-1]))
+                    print("train acc: {:.3f}%, test acc: {:.3f}%\n".format(100.0*train_a[-1],100.0*test_a[-1]))
                     s = time.time()
                 i += 1
         # Reconstructing images after training ends
-        _,_,_,_,recon1,recon3,recon5,recon7 = eval_function(true_x)
+        """
+        _,_,_,_,recon1,recon3,recon5,recon7 = eval_f(true_x)
         save_params([recon1,recon3,recon5,recon7], result_file + '_final_recons', date_time=False)
+        """
+        _,_,_,recon1,recon5,recon7 = eval_f(true_x)
+        save_params([recon1,recon5,recon7], result_file + '_final_recons', date_time=False)
         save_params([true_x], result_file + '_truex', date_time=False)
         # Save final params
-        print("\nSaving weights..")
+        print("Saving weights..")
         if energy_type=='boltzman':
             save_params([W.get_value() for W in params], checkpoint_file,False)
         elif energy_type[-3:]=='net':
@@ -230,6 +292,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_data", action='store', dest="num_data", type=int, default=-1)
     parser.add_argument("--energy", action='store', dest="energy", type=str, default='boltzman')
     parser.add_argument("--sampling", action='store', dest="sampling", type=str, default='gibbs')
+    parser.add_argument("--nsamples", "-s", action='store', dest="nsamples", type=int, default=1)
     parser.add_argument("--objective","-o", action='store', dest="obj", type=str, default='CD')
     parser.add_argument("--mode","-m", action='store', dest="mode", type=str, default='train')
     options = parser.parse_args()
@@ -248,21 +311,20 @@ if __name__ == "__main__":
                 energy_type=options.energy,
                 archi=arch[options.energy],
                 sampling_method=options.sampling,
+                num_samples=options.nsamples,
                 obj_fct=options.obj,
                 mode=options.mode)
     """
 
-    objectives = ['CD','CSS',]
-    ene = ['CONV_net','boltzman','FC_net']
-    #samp = ['naive_taylor','stupid_q']
-    samp = ['naive_taylor',]
-    for sampl in samp:
-        for energ in ene:
-            for ob in objectives:
-                main(dataset,batch_size=options.BATCH_SIZE,
-                                num_epochs=options.NUM_EPOCH,
-                                energy_type=energ,
-                                archi=arch[energ],
-                                sampling_method=sampl,
-                                obj_fct=ob,
-                                mode=options.mode)
+    for nsampl in NUM_SAMPLES[::-1]:
+        for sampl in samp:
+            for energ in ene:
+                for ob in objectives:
+                    main(dataset,batch_size=options.BATCH_SIZE,
+                                    num_epochs=options.NUM_EPOCH,
+                                    energy_type=energ,
+                                    archi=arch[energ],
+                                    sampling_method=sampl,
+                                    num_samples=nsampl,
+                                    obj_fct=ob,
+                                    mode=options.mode)

@@ -5,7 +5,7 @@ import theano
 import theano.tensor as T
 from theano.gradient import zero_grad
 
-from utils import build_taylor_q
+from utils import build_taylor_q, logsumexp
 
 eps=1e-6
 
@@ -22,7 +22,7 @@ def sampler(x, energy, E_data, num_steps, params, p_flip, sampling_method, srng)
     if sampling_method=="gibbs":
         samples, logq, updates = gibbs_sample(x, energy, num_steps, params, srng)
     elif sampling_method=="naive_taylor":
-        samples, logq, updates = taylor_sample(x, E_data, srng)
+        samples, logq, updates = taylor_sample(x, E_data, num_steps, srng)
     elif sampling_method=="stupid_q":
         samples, logq, updates = stupidq(x,p_flip,srng)
     else:
@@ -61,15 +61,29 @@ def gibbs_sample(X, energy, num_steps, params, srng):
 
     return q_samples, logq, updates
 
-def taylor_sample(X, E_data, srng):
+def taylor_sample(X, E_data, num_steps, srng):
     """
     Sample from taylor expansion of the energy.
+    -X:         batch x D
+    -E_data:    batch x 1
     """
-    q = build_taylor_q(X, E_data, srng)
-    q_sample = binary_sample(q.shape, q, srng=srng)
+    # Build density
+    means, pvals = build_taylor_q(X, E_data) #shape: #shape: (batch,D), (batch,batch)
+    means = T.repeat(T.nnet.sigmoid(means), num_steps, axis=0) #shape: (num_steps*batch,D)
+
+    # Sampling component of the mixture.
+    pi = T.argmax(srng.multinomial(pvals=T.repeat(pvals, num_steps, axis=0),
+                                   dtype=theano.config.floatX), axis=1) #shape: (num_steps*batch,)
+    q = T.nnet.sigmoid(means)[pi] #shape: (num_steps*batch,D)
+    #q_ext = T.repeat(q, num_steps, axis=0) #shape: (num_steps*batch,D)
+    q_sample = binary_sample(q.shape, q, srng=srng) #shape: (num_steps*batch,D)
+
     # Calculate log[q(q_sample)]
-    q = q * (1.0 - 2*eps) + eps
-    log_q = - T.sum(T.nnet.binary_crossentropy(q, q_sample), axis=1,keepdims=True)
+    log_qx = -(T.nnet.binary_crossentropy(means, q_sample)) #shape: (num_steps*batch,D)
+    #log_qn = T.log(pvals[0]).T.dimshuffle([0,"x"]),num_steps, axis=0) #shape: (num_steps*batch,1)
+    log_qn = -T.log(X.shape[0]) #shape: (1,)
+
+    log_q = logsumexp(log_qx + log_qn/X.shape[1])  #shape: (num_steps*batch,1)
 
     return q_sample, log_q, dict()
 

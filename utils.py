@@ -13,6 +13,12 @@ import pdb
 
 eps=1e-6
 
+######################################## Functions ########################################
+def logsumexp(X):
+    """Expects an NxD tensor"""
+    m = T.max(X, axis=1, keepdims=True)
+    return m + T.log(T.sum(T.exp(X-m), axis=1, keepdims=True))
+
 ######################################## Energy ########################################
 def init_BM_params(archi):
     """
@@ -35,7 +41,7 @@ def build_net(architecture, energy_type='FC_net'):
             l = lg.layers.DenseLayer(l, num_units=architecture["nhidden_"+str(i+1)],
                                         W=lg.init.GlorotUniform(),
                                         b=lg.init.Constant(0.),
-                                        nonlinearity=lg.nonlinearities.elu)
+                                        nonlinearity=lg.nonlinearities.tanh)
         # Output layer
         l_out = lg.layers.DenseLayer(l, num_units=architecture["noutput"],
                                         W=lg.init.GlorotUniform(),
@@ -58,7 +64,7 @@ def build_net(architecture, energy_type='FC_net'):
         l = lg.layers.DenseLayer(l, num_units=architecture["FC_units"],
                                     W=lg.init.GlorotUniform(),
                                     b=lg.init.Constant(0.),
-                                    nonlinearity=lg.nonlinearities.elu)
+                                    nonlinearity=lg.nonlinearities.tanh)
         ## output
         l_out = lg.layers.DenseLayer(l, num_units=architecture["noutput"],
                                         W=lg.init.GlorotUniform(),
@@ -67,13 +73,20 @@ def build_net(architecture, energy_type='FC_net'):
     return l_out
 
 ######################################## Sampling ########################################
-def build_taylor_q(X, E_data, srng):
+def build_taylor_q(X, E_data, uniform=True):
     """
-    Build the taylor expansion of the energy.
+    Build the taylor expansion of the energy for bernoulli mixtures of batch mixtures.
+    -X:         batch x D
+    -E_data:    batch x 1
     """
-    pvals = T.nnet.softmax(E_data.reshape((1, -1)))
-    pvals = T.repeat(pvals, X.shape[0], axis=0)
-    pi = T.argmax(srng.multinomial(pvals=pvals,
-                                   dtype=theano.config.floatX), axis=1)
-    q = T.nnet.sigmoid(T.grad(T.sum(E_data), X)[pi])
-    return q
+    # Responsability of each  mixtures.
+    if uniform:
+        # uniform mixture weights
+        pvals = T.mean(T.ones_like(E_data.reshape((1, -1))),axis=-1,keepdims=True)
+    else:
+        # mixture components distributed as softmax(E(xn))
+        pvals = T.nnet.softmax(E_data.reshape((1, -1))) #shape: (1,batch)
+    pvals = T.repeat(pvals, X.shape[0], axis=0) #shape: (batch,batch)
+    # Mean of bernoulli.
+    means = T.grad(T.sum(E_data), X) #shape: (batch,D)
+    return means, pvals
