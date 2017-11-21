@@ -136,14 +136,17 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         test_energy     = np.zeros((shape[0],2))
         train_loss      = np.zeros(shape[0])
         test_loss       = np.zeros(shape[0])
+        train_sigma     = np.zeros(shape[0])
+        test_sigma      = np.zeros(shape[0])
         eval_loglike    = np.zeros(shape[0])
+        eval_sigma      = np.zeros(shape[0])
         time_ite        = np.zeros(shape[0])
         norm_params     = np.zeros((shape[0],len(params)))
         i, s = 0, time.time() #counter for iteration, time
         best_acc, best_loss = 0.0, -100.0
         for epoch in range(num_epochs):
             for x, y in dataset.iter("train", batch_size):
-                train_l, Z1, Z2 = trainloss_f(x,prob_init*exp(i*log(decay_rate)))
+                train_l, Z1, Z2, Sigma = trainloss_f(x,prob_init*exp(i*log(decay_rate)))
                 if train_l>best_loss:
                     best_loss = train_l
                 if i%LOG_FREQ==0:
@@ -160,12 +163,14 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     train_a1,train_a5,train_a7,_,_,_ = eval_f(x)
                     train_a = np.array([train_a1,train_a5,train_a7])
                     # Test
-                    test_l, loglikelihood, n = 0.0, 0.0, 0
+                    test_l, loglikelihood, sigma, lsigma, n = 0.0, 0.0, 0.0, 0.0, 0
                     test_a = np.zeros((len(fractions)))
                     for x_test, y_test in dataset.iter("test", batch_size):
-                        l, z1, z2, loglike, lz1, lz2 = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
+                        l, z1, z2, sig, loglike, lz1, lz2, lsig = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
                         test_l += l
                         loglikelihood += loglike
+                        sigma += sig
+                        lsigma += lsig
                         """
                         acc1,acc3,acc5,acc7,_,_,_,_ = eval_f(x_test)
                         test_a += np.array([acc1,acc3,acc5,acc7])
@@ -178,6 +183,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     test_a = test_a/float(n)
                     test_l = test_l/float(n)
                     loglikelihood = loglikelihood/float(n)
+                    sigma = sigma/float(n)
+                    lsigma = lsigma/float(n)
                     if test_a[-1]>best_acc:
                         best_acc = test_a[-1]
                         """
@@ -193,7 +200,10 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     test_energy[(i)//LOG_FREQ] = np.asarray([z1,z2])
                     train_loss[(i)//LOG_FREQ] = train_l
                     test_loss[(i)//LOG_FREQ] = test_l
+                    train_sigma[(i)//LOG_FREQ] = Sigma
+                    test_sigma[(i)//LOG_FREQ] = sigma
                     eval_loglike[(i)//LOG_FREQ] = loglikelihood
+                    eval_sigma[(i)//LOG_FREQ] = lsigma
                     ti = time.time() - s
                     time_ite[(i)//LOG_FREQ] = ti
                     norm_params[(i)//LOG_FREQ] = norm
@@ -204,7 +214,10 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     save_np(test_energy,'test_energy',result_file)
                     save_np(train_loss,'train_loss',result_file)
                     save_np(test_loss,'test_loss',result_file)
+                    save_np(train_sigma,'train_sigma',result_file)
+                    save_np(test_sigma,'test_sigma',result_file)
                     save_np(eval_loglike,'eval_loglike',result_file)
+                    save_np(eval_sigma,'eval_sigma',result_file)
                     save_np(time_ite,'time',result_file)
                     save_np(norm_params,'norm_params',result_file)
                     # log info

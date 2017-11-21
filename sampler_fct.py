@@ -83,7 +83,7 @@ def taylor_sample(X, E_data, num_steps, srng):
     #log_qn = T.log(pvals[0]).T.dimshuffle([0,"x"]),num_steps, axis=0) #shape: (num_steps*batch,1)
     log_qn = -T.log(X.shape[0]) #shape: (1,)
 
-    log_q = logsumexp(log_qx + log_qn/X.shape[1])  #shape: (batch,1)
+    log_q = logsumexp(log_qx + log_qn/X.shape[1])  #shape: (num_steps*batch,1)
 
     return q_sample, log_q, dict()
 

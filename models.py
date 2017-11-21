@@ -11,7 +11,7 @@ from functools import partial
 import utils as u
 from energy_fct import build_energy
 from sampler_fct import sampler
-from obj_fct import objectives
+from obj_fct import objectives, variance_estimator
 from eval_fct import reconstruct_images
 
 srng = RandomStreams(100)
@@ -41,11 +41,12 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     E_data = energy(X)
 
     # Sampling from Q
-    samples, log_q, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, srng)
+    samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, srng)
     E_samples =energy(samples)
 
-    # Build loss function, regularization & updates dictionary
-    loss, z1, z2 = objectives(E_data,E_samples,log_q,obj_fct,approx_grad=True)
+    # Build loss function, variance estimator, regularization & updates dictionary
+    loss, logZ, z1, z2 = objectives(E_data,E_samples,logq,obj_fct,approx_grad=True)
+    sigma = variance_estimator(logZ,E_samples,logq)
     if regularization and energy_type!='boltzman':
         all_layers = lasagne.layers.get_all_layers(l_out)
         layers={}
@@ -56,10 +57,11 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     updates = upd.adam(-loss, params, learning_rate=alpha)
     updates.update(updts) #we need to ad the update dictionary
 
-    # Logilike evaluation with 10N samples
+    # Logilike & variance evaluation with 10N samples
     samples_10, logq_10, _ = sampler(X, energy, E_data, 50*num_steps_MC, params, p_flip, sampling_method, srng)
     E_samples_10 = energy(samples_10)
-    loss_10, z1_10, z2_10 = objectives(E_data,E_samples_10,logq_10,obj_fct,approx_grad=True)
+    loss_10, logZ_10, z1_10, z2_10 = objectives(E_data,E_samples_10,logq_10,obj_fct,approx_grad=True)
+    sigma_10 = variance_estimator(logZ_10,E_samples_10,logq_10)
 
     # Evaluation (you lazy)
     recon_01, acc_01 = reconstruct_images(X, num_steps=num_steps_reconstruct,
@@ -89,8 +91,8 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
                                                         D=784)
 
     # Build theano learning function
-    trainloss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2), updates=updates,on_unused_input='ignore')
-    testloss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2,loss_10,z1_10,z2_10),on_unused_input='ignore')
+    trainloss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2,sigma), updates=updates,on_unused_input='ignore')
+    testloss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2,sigma,loss_10,z1_10,z2_10,sigma_10),on_unused_input='ignore')
     #eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_03,acc_05,acc_07,recon_01,recon_03,recon_05,recon_07))
     eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_05,acc_07,recon_01,recon_05,recon_07))
 
