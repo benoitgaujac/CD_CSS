@@ -45,7 +45,7 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     E_samples =energy(samples)
 
     # Build loss function, regularization & updates dictionary
-    loss, z1, z2 = objectives(samples,log_q,E_data,E_samples,obj_fct,approx_grad=True)
+    loss, z1, z2 = objectives(E_data,E_samples,log_q,obj_fct,approx_grad=True)
     if regularization and energy_type!='boltzman':
         all_layers = lasagne.layers.get_all_layers(l_out)
         layers={}
@@ -61,7 +61,7 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     # Logilike evaluation with 10N samples
     samples_10, logq_10, _ = sampler(X, energy, E_data, 50*num_steps_MC, params, p_flip, sampling_method, srng)
     E_samples_10 = energy(samples_10)
-    loss_10, z1_10, z2_10 = objectives(samples_10,logq_10,E_data,E_samples_10,obj_fct,approx_grad=True)
+    loss_10, z1_10, z2_10 = objectives(E_data,E_samples_10,logq_10,obj_fct,approx_grad=True)
 
     # Evaluation (you lazy)
     recon_01, acc_01 = reconstruct_images(X, num_steps=num_steps_reconstruct,

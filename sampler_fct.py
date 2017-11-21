@@ -70,10 +70,9 @@ def taylor_sample(X, E_data, num_steps, srng):
     # Build density
     means, pvals = build_taylor_q(X, E_data) #shape: #shape: (batch,D), (batch,batch)
     means = T.repeat(T.nnet.sigmoid(means), num_steps, axis=0) #shape: (num_steps*batch,D)
-    pvals = T.repeat(pvals, num_steps, axis=0) #shape: (num_steps*batch,D)
 
     # Sampling component of the mixture.
-    pi = T.argmax(srng.multinomial(pvals=pvals,
+    pi = T.argmax(srng.multinomial(pvals=T.repeat(pvals, num_steps, axis=0),
                                    dtype=theano.config.floatX), axis=1) #shape: (num_steps*batch,)
     q = T.nnet.sigmoid(means)[pi] #shape: (num_steps*batch,D)
     #q_ext = T.repeat(q, num_steps, axis=0) #shape: (num_steps*batch,D)
@@ -81,8 +80,8 @@ def taylor_sample(X, E_data, num_steps, srng):
 
     # Calculate log[q(q_sample)]
     log_qx = -(T.nnet.binary_crossentropy(means, q_sample)) #shape: (num_steps*batch,D)
-    #log_qn = T.repeat(T.log(pvals[0]).T.dimshuffle([0,"x"]),num_steps, axis=0) #shape: (num_steps*batch,1)
-    log_qn = -T.log(X.shape[0])#shape: (1,)
+    #log_qn = T.log(pvals[0]).T.dimshuffle([0,"x"]),num_steps, axis=0) #shape: (num_steps*batch,1)
+    log_qn = -T.log(X.shape[0]) #shape: (1,)
 
     log_q = logsumexp(log_qx + log_qn)  #shape: (batch,1)
 

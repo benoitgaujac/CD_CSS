@@ -7,17 +7,17 @@ from theano.gradient import zero_grad
 
 eps=1e-6
 
-def objectives(q_sample,log_q,E_data,E_samples,obj_fct,approx_grad=True):
+def objectives(E_data,E_samples,log_q,obj_fct,approx_grad=True):
     if obj_fct=='CD':
-        l, z1, z2 = cd_objective(q_sample, E_data, E_samples)
+        l, z1, z2 = cd_objective(E_data, E_samples)
     elif obj_fct=='CSS':
-        l, z1, z2 = css_objective(q_sample, log_q, E_data, E_samples, approx_grad)
+        l, z1, z2 = css_objective(E_data, E_samples, log_q, approx_grad)
     else:
         raise ValueError("Incorrect objective function. Not CD nor CSS.")
 
     return l, z1, z2
 
-def cd_objective(q_sample, E_data, E_samples):
+def cd_objective(E_data, E_samples):
     """
     An objective whose gradient is equal to the CD gradient.
     """
@@ -26,12 +26,12 @@ def cd_objective(q_sample, E_data, E_samples):
     return z1 - z2, z1, z2
 
 
-def css_objective(q_samples, log_q, E_data, E_samples, approx_grad=True):
+def css_objective(E_data, E_samples, log_q, approx_grad=True):
     """
     CSS objective.
-    -true_x:        The data points samples NxD
-    -q_samples:      Samples from the q distribution (NxS)xD
     -log_q:         log[q(q_sample)] (NxS)x1
+    -E_data:        Energy of the true data Nx1
+    -E_samples:     Energy of the samples (NxS)x1
     -approx_grad:   Whether to take gradients with respect to log_q (True means we don't take)
     """
     if approx_grad:
