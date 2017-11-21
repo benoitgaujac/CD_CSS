@@ -73,7 +73,7 @@ def build_net(architecture, energy_type='FC_net'):
     return l_out
 
 ######################################## Sampling ########################################
-def build_taylor_q(X, E_data, uniform=True, srng):
+def build_taylor_q(X, E_data, uniform=True):
     """
     Build the taylor expansion of the energy for bernoulli mixtures of batch mixtures.
     -X:         batch x D
