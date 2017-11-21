@@ -128,7 +128,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                                                                         energy_type=energy_type,
                                                                         archi=archi)
         # Training loop
-        print("starting training...")
+        print("\nstarting training...")
         shape = (num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1,len(fractions),NUM_RECON,D)
         train_accuracy  = np.zeros(shape[:2])
         test_accuracy   = np.zeros(shape[:2])
@@ -208,11 +208,10 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     save_np(time_ite,'time',result_file)
                     save_np(norm_params,'norm_params',result_file)
                     # log info
-                    print("")
                     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
                     print("[{:.3f}s]iteration {}".format(ti, i+1))
                     print("train loss: {:.3e}, test loss: {:.3f}".format(float(train_l),float(test_l)))
-                    print("train acc: {:.3f}%, test acc: {:.3f}%".format(100.0*train_a[-1],100.0*test_a[-1]))
+                    print("train acc: {:.3f}%, test acc: {:.3f}%\n".format(100.0*train_a[-1],100.0*test_a[-1]))
                     s = time.time()
                 i += 1
         # Reconstructing images after training ends
@@ -224,7 +223,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         save_params([recon1,recon5,recon7], result_file + '_final_recons', date_time=False)
         save_params([true_x], result_file + '_truex', date_time=False)
         # Save final params
-        print("\nSaving weights..")
+        print("Saving weights..")
         if energy_type=='boltzman':
             save_params([W.get_value() for W in params], checkpoint_file,False)
         elif energy_type[-3:]=='net':
