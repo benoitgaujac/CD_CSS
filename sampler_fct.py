@@ -47,7 +47,7 @@ def taylor_sample(X, E_data, num_samples, uniform_taylor, srng):
     # Sampling component of the mixture.
     pi = T.argmax(srng.multinomial(pvals=T.repeat(pvals, num_samples, axis=0),
                                    dtype=theano.config.floatX), axis=1) #shape: (num_samples,)
-    q = T.repeat(T.nnet.sigmoid(means), num_samples, axis=0)[pi] #shape: (num_samples,D)
+    q = T.repeat(means, num_samples, axis=0)[pi] #shape: (num_samples,D)
     q_sample = binary_sample(q.shape, q, srng=srng) #shape: (num_samples,D)
 
     # Calculate log[q(xs)]
@@ -82,7 +82,7 @@ def build_taylor_q(X, E_data, uniform):
         pvals = T.nnet.softmax(E_data.reshape((1, -1))) #shape: (1,batch)
 
     # Mean of bernoulli phi_n. We have batch mixtures, so batch means of dimension D
-    means = T.grad(T.sum(E_data), X) #shape: (batch,D)
+    means = T.nnet.sigmoid(T.grad(T.sum(E_data), X)) #shape: (batch,D)
     return means, pvals
 
 def gibbs_sample(X, energy, num_steps, num_samples, params, srng):
