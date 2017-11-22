@@ -29,7 +29,7 @@ ene = ['CONV_net','boltzman']
 #samp = ['naive_taylor','stupid_q']
 samp = ['naive_taylor',]
 
-NUM_SAMPLES = [1,10,20] # Nb of sampling steps
+NUM_SAMPLES = [1,5,10] # Nb of sampling steps
 RECONSTRUCT_STEPS = 10 # Nb of Gibbs steps for reconstruction
 IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
@@ -123,7 +123,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                                                                         alpha=LR,
                                                                         sampling_method=sampling_method,
                                                                         p_flip = p_flip,
-                                                                        num_steps_MC=num_samples,
+                                                                        num_samples=BATCH_SIZE*num_samples,
+                                                                        num_steps_MC=1,
                                                                         num_steps_reconstruct=RECONSTRUCT_STEPS,
                                                                         energy_type=energy_type,
                                                                         archi=archi)

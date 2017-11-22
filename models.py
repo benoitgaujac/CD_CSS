@@ -20,6 +20,7 @@ coef_regu = 0.0
 regularization=False
 
 def build_model(X, obj_fct, alpha, sampling_method, p_flip,
+                                                    num_samples,
                                                     num_steps_MC=1,
                                                     num_steps_reconstruct=10,
                                                     energy_type="boltzman",
@@ -29,8 +30,9 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     -X:                 Input
     -obj_fct:           Name of the training objective
     -sampling_method:   Sampling method used
+    -num_samples:       Number of samples for importance sampling/MC
     -alpha:             Learning rate
-    -num_steps_MC:      Number of steps for sampling (either Gibbs or Taylor)
+    -num_steps_MC:      Number of steps for MCMC with gibbs sampling
     -reconstruct_steps: Number of steps for reconstructing the images
     -energy_type:       Energy function type (either boltzman or nnet)
     -archi:             Architecture of the energy network
@@ -41,7 +43,7 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     E_data = energy(X)
 
     # Sampling from Q
-    samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, srng)
+    samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, num_samples, uniform_taylor=True, srng)
     E_samples =energy(samples)
 
     # Build loss function, variance estimator, regularization & updates dictionary
@@ -58,41 +60,20 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     updates.update(updts) #we need to ad the update dictionary
 
     # Logilike & variance evaluation with 10N samples
-    samples_10, logq_10, _ = sampler(X, energy, E_data, 50*num_steps_MC, params, p_flip, sampling_method, srng)
-    E_samples_10 = energy(samples_10)
-    loss_10, logZ_10, z1_10, z2_10 = objectives(E_data,E_samples_10,logq_10,obj_fct,approx_grad=True)
-    sigma_10 = variance_estimator(logZ_10,E_samples_10,logq_10)
+    ev_samples, ev_logq, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 100*num_samples, uniform_taylor=True, srng)
+    ev_E_samples = energy(ev_samples)
+    ev_loss, ev_logZ, ev_z1, ev_z2 = objectives(E_data,ev_E_samples,ev_logq,obj_fct,approx_grad=True)
+    ev_sigma = variance_estimator(ev_logZ,ev_E_samples,ev_logq)
 
     # Evaluation (you lazy)
-    recon_01, acc_01 = reconstruct_images(X, num_steps=num_steps_reconstruct,
-                                                        params=params,
-                                                        energy=energy,
-                                                        srng=srng,
-                                                        fraction=0.1,
-                                                        D=784)
-
-    recon_03, acc_03 = reconstruct_images(X, num_steps=num_steps_reconstruct,
-                                                        params=params,
-                                                        energy=energy,
-                                                        srng=srng,
-                                                        fraction=0.3,
-                                                        D=784)
-    recon_05, acc_05 = reconstruct_images(X, num_steps=num_steps_reconstruct,
-                                                        params=params,
-                                                        energy=energy,
-                                                        srng=srng,
-                                                        fraction=0.5,
-                                                        D=784)
-    recon_07, acc_07 = reconstruct_images(X, num_steps=num_steps_reconstruct,
-                                                        params=params,
-                                                        energy=energy,
-                                                        srng=srng,
-                                                        fraction=0.7,
-                                                        D=784)
+    recon_01, acc_01 = reconstruct_images(X, num_steps=num_steps_reconstruct,params=params,energy=energy,srng=srng,fraction=0.1,D=784)
+    recon_03, acc_03 = reconstruct_images(X, num_steps=num_steps_reconstruct,params=params,energy=energy,srng=srng,fraction=0.3,D=784)
+    recon_05, acc_05 = reconstruct_images(X, num_steps=num_steps_reconstruct,params=params,energy=energy,srng=srng,fraction=0.5,D=784)
+    recon_07, acc_07 = reconstruct_images(X, num_steps=num_steps_reconstruct,params=params,energy=energy,srng=srng,fraction=0.7,D=784)
 
     # Build theano learning function
     trainloss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2,sigma), updates=updates,on_unused_input='ignore')
-    testloss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2,sigma,loss_10,z1_10,z2_10,sigma_10),on_unused_input='ignore')
+    testloss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2,sigma,ev_loss,ev_z1,ev_z2,ev_sigma),on_unused_input='ignore')
     #eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_03,acc_05,acc_07,recon_01,recon_03,recon_05,recon_07))
     eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_05,acc_07,recon_01,recon_05,recon_07))
 
