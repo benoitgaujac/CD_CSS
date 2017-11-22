@@ -30,33 +30,33 @@ def cd_objective(E_data, E_samples):
 def css_objective(E_data, E_samples, logq, approx_grad=True):
     """
     CSS objective.
-    -log_q:         log[q(q_sample)] (NxS)x1
+    -log_q:         log[q(q_sample)] Sx1
     -E_data:        Energy of the true data Nx1
-    -E_samples:     Energy of the samples (NxS)x1
+    -E_samples:     Energy of the samples Sx1
     -approx_grad:   Whether to take gradients with respect to log_q (True means we don't take)
     """
     if approx_grad:
         logq = zero_grad(logq)
 
     # Expand the energy for the Q samples
-    e_q = E_samples - logq - T.log(T.cast(E_samples.shape[0], theano.config.floatX)) #shape: (nsamples*batch,1)
+    e_q = E_samples - logq - T.log(T.cast(E_samples.shape[0], theano.config.floatX)) #shape: (nsamples,1)
     e_x = E_data #shape: (batch,1)
 
     # Concatenate energies
     e_p = T.concatenate((e_x, e_q), axis=0)
 
     # Calculate the objective
-    m = zero_grad(T.max(e_p, axis=0))
-    e_p = e_p - m
     z_1 = T.mean(e_x)
     z_2 = T.mean(e_q)
     """
+    m = zero_grad(T.max(e_p, axis=0))
+    e_p = e_p - m
     z_1 = T.log(T.sum(T.exp(e_p[:e_x.shape[0]]), axis=0)) + m
     z_2 = T.log(T.sum(T.exp(e_p[e_x.shape[0]:]), axis=0)) + m
     """
-    logZ = logsumexp(e_p.T) + m
-    #Why should it be Ntrain/Nbatchxz1?
-    return z_1 - logZ[0], logZ[0], z_1, z_2
+    logZ = logsumexp(e_p.T)
+    #Why should it be Ntrain/Nbatch x z1?
+    return z_1 - logZ[0,0], logZ[0,0], z_1, z_2
 
 def variance_estimator(logZ,E_samples,logq):
     """

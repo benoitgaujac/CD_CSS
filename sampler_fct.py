@@ -9,7 +9,7 @@ from utils import logsumexp
 
 eps=1e-6
 
-def sampler(x, energy, E_data, num_samples, params, p_flip, sampling_method, num_samples, srng, uniform_taylor=True):
+def sampler(x, energy, E_data, num_steps, params, p_flip, sampling_method, num_samples, srng, uniform_taylor=True):
     """
     Sampler for MC approximation of the energy. Return samples.
     -x:                 Input data
