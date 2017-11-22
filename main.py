@@ -23,7 +23,7 @@ from models import build_model
 from energy_fct import net_energy, botlmzan_energy
 from utils import build_net
 
-objectives = ['CD','CSS',]
+objectives = ['CSS','CD',]
 #ene = ['CONV_net','boltzman','FC_net']
 ene = ['CONV_net','boltzman']
 #samp = ['naive_taylor','stupid_q']
