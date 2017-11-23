@@ -43,7 +43,7 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     E_data = energy(X)
 
     # Sampling from Q
-    samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, num_samples, srng, True)
+    samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, num_samples, srng, False)
     E_samples =energy(samples)
 
     # Build loss function, variance estimator, regularization & updates dictionary
@@ -60,7 +60,7 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     updates.update(updts) #we need to ad the update dictionary
 
     # Logilike & variance evaluation with 10N samples
-    ev_samples, ev_logq, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 100*num_samples, srng, True)
+    ev_samples, ev_logq, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 100*num_samples, srng, False)
     ev_E_samples = energy(ev_samples)
     ev_loss, ev_logZ, ev_z1, ev_z2 = objectives(E_data,ev_E_samples,ev_logq,obj_fct,approx_grad=True)
     ev_sigma = variance_estimator(ev_logZ,ev_E_samples,ev_logq)
