@@ -48,5 +48,4 @@ def net_energy(x, l_out, energy_type, im_resize=None):
         Xin = T.reshape(x, (-1,1,im_resize,im_resize),ndim=4)
     else:
         Xin = x
-    #pdb.set_trace()
     return lg.layers.get_output(l_out, Xin)

@@ -17,7 +17,7 @@ def sampler(x, energy, E_data, num_steps, params, p_flip, sampling_method, num_s
     -E_data:            Energy of the training data
     -num_steps:         Number of steps in the MCMC
     -params:            Params of the model
-    -sampling_method:   Sampling method used for sampling (gibbs, taylor)
+    -sampling_method:   Sampling method used for sampling (gibbs, taylor, uniform)
     -num_samples:       Number of samples for importance sampling/MC
     -uniform_taylor:    Weather or not to use uniform mixture weights for taylor distribution
     """
@@ -25,8 +25,10 @@ def sampler(x, energy, E_data, num_steps, params, p_flip, sampling_method, num_s
         # TODO
         pass
         #samples, logq, updates = gibbs_sample(x, energy, num_steps, num_samples, params, srng)
-    elif sampling_method=="naive_taylor":
+    elif sampling_method=="taylor":
         samples, logq, updates = taylor_sample(x, E_data, num_samples, uniform_taylor, srng)
+    elif sampling_method=="uniform":
+        samples, logq, updates = uniform(x, num_samples, srng)
     elif sampling_method=="stupid_q":
         samples, logq, updates = stupidq(x,p_flip,srng)
     else:
@@ -55,12 +57,6 @@ def taylor_sample(X, E_data, num_samples, uniform_taylor, srng):
     means = T.repeat(means.dimshuffle(["x", 0, 1]),num_samples,axis=0) #shape: (num_samples, batch, D)
     q_sample_ext = T.repeat(q_sample.dimshuffle([0, "x", 1]),X.shape[0],axis=1)  #shape: (num_samples, batch, D)
     log_qx = -T.sum(T.nnet.nnet.binary_crossentropy(means,q_sample_ext),axis=-1,keepdims=False)  #shape: (num_samples, batch)
-    """
-    means = means.dimshuffle([0, "x", 1]) #shape: (batch, 1, D)
-    q_sample_ext = q_sample.dimshuffle(["x", 0, 1])  #shape: (1, num_samples, D)
-    Xentr = T.switch(T.eq(q_sample_ext, 0), 1 - means, means)  #shape: (batch, num_samples, D)
-    log_qx = T.sum(Xentr,axis=-1).T  #shape: (num_samples,batch)
-    """
     #log[q(n)]
     log_qn = T.log(pvals) #shape: (1,batch)
     log_q = logsumexp(log_qx + log_qn)  #shape: (num_samples,1)
@@ -72,6 +68,7 @@ def build_taylor_q(X, E_data, uniform):
     Build the taylor expansion of the energy for bernoulli mixtures of batch mixtures.
     -X:         batch x D
     -E_data:    batch x 1
+    -uniform:    Weather or not to use uniform mixture weights
     """
     # Responsability of each of the batch mixtures q(n).
     if uniform:
@@ -84,6 +81,20 @@ def build_taylor_q(X, E_data, uniform):
     # Mean of bernoulli phi_n. We have batch mixtures, so batch means of dimension D
     means = T.nnet.sigmoid(T.grad(T.sum(E_data), X)) #shape: (batch,D)
     return means, pvals
+
+def uniform(X, num_samples, srng):
+    """
+    Sample from uniform.
+    -X: batch x D
+    """
+    # Sampling from uniform
+    q = 0.5*T.ones((num_samples,X.shape[-1]),dtype=theano.config.floatX) #shape: (num_samples,D)
+    q_sample = binary_sample(q.shape, q, srng=srng) #shape: (num_samples,D)
+
+    # Calculate log[q(xs)]
+    log_q = -T.log(2)*T.cast(X.shape[-1],theano.config.floatX)*T.ones((num_samples,1),dtype=theano.config.floatX) #shape: (num_samples,1)
+
+    return q_sample, log_q, dict()
 
 def gibbs_sample(X, energy, num_steps, num_samples, params, srng):
     """

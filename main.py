@@ -26,10 +26,13 @@ from utils import build_net
 objectives = ['CSS','CD',]
 #ene = ['CONV_net','boltzman','FC_net']
 ene = ['CONV_net','boltzman']
-#samp = ['naive_taylor','stupid_q']
-samp = ['naive_taylor',]
+samp = ['taylor','uniform']
+#samp = ['taylor',]
+#fractions = [0.1,0.3,0.5,0.7]
+fractions = [0.1,0.5,0.7]
 
-NUM_SAMPLES = [1,5,10] # Nb of sampling steps
+#NUM_SAMPLES = [1,5,10] # Nb of sampling steps
+NUM_SAMPLES = [1,] # Nb of sampling steps
 RECONSTRUCT_STEPS = 10 # Nb of Gibbs steps for reconstruction
 IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
@@ -39,16 +42,6 @@ LOG_FREQ = 32
 NUM_RECON = 10
 IND_RECON = 2000
 LR = 0.00005
-
-#fractions = [0.1,0.3,0.5,0.7]
-fractions = [0.1,0.5,0.7]
-for res_sum in range(33,50):
-    RESULTS_DIR = "./results" + str(res_sum) # Path to results
-    if not os.path.exists(RESULTS_DIR):
-        os.makedirs(RESULTS_DIR)
-        break
-if res_sum==50:
-    raise ValueError("Too many results dir. Clean your shits.")
 
 ######################################## Models architectures ########################################
 FC_net = {"hidden":3,"nhidden_0":D,"nhidden_1":1024,"nhidden_2":2048,"nhidden_3":2048,"noutput":1}
@@ -83,8 +76,10 @@ def load_data(FILE_PATH):
         x = np.asarray(cPickle.load(f))
     return x
 
-def create_directory(samples,experiment):
-    samples_dir,_ = create_subdirectory(RESULTS_DIR,str(samples) + 'samples')
+def create_directory(directory,samples,experiment):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    samples_dir,_ = create_subdirectory(directory,str(samples) + 'samples')
     _,checkpoint_file = create_subdirectory(samples_dir,"weights",experiment)
     _,result_file = create_subdirectory(samples_dir,"log",experiment)
 
@@ -102,10 +97,10 @@ def create_subdirectory(DIR,SUBDIR,experiment=None):
 
 
 ######################################## Main ########################################
-def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='boltzman', archi=None, sampling_method='gibbs', num_samples=2, obj_fct="CD", mode="train"):
+def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='boltzman', archi=None, sampling_method='gibbs', num_samples=2, obj_fct="CD", mode="train",directory="results"):
     # Create directories
     experiment = obj_fct + "_" +energy_type + "_" + sampling_method
-    checkpoint_file, result_file = create_directory(num_samples,experiment)
+    checkpoint_file, result_file = create_directory(directory,num_samples,experiment)
 
     if mode=="train":
         # Image to visualize reconstruction
@@ -130,24 +125,25 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                                                                         archi=archi)
         # Training loop
         print("\nstarting training...")
-        shape = (num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1,len(fractions),NUM_RECON,D)
-        train_accuracy  = np.zeros(shape[:2])
-        test_accuracy   = np.zeros(shape[:2])
+        shape = (num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1,len(fractions))
+        train_accuracy  = np.zeros(shape)
         train_energy    = np.zeros((shape[0],2))
-        test_energy     = np.zeros((shape[0],2))
         train_loss      = np.zeros(shape[0])
+        train_samples   = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
+        test_accuracy   = np.zeros(shape)
+        test_energy     = np.zeros((shape[0],2))
         test_loss       = np.zeros(shape[0])
-        train_sigma     = np.zeros(shape[0])
-        test_sigma      = np.zeros(shape[0])
-        eval_loglike    = np.zeros(shape[0])
-        eval_sigma      = np.zeros(shape[0])
+        test_samples    = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
+        eval_loglike    = np.zeros(shape)
+        eval_energy     = np.zeros((shape[0],2))
+        eval_samples    = np.zeros((shape[0],1000*BATCH_SIZE*num_samples,2))
         time_ite        = np.zeros(shape[0])
         norm_params     = np.zeros((shape[0],len(params)))
         i, s = 0, time.time() #counter for iteration, time
         best_acc, best_loss = 0.0, -100.0
         for epoch in range(num_epochs):
             for x, y in dataset.iter("train", batch_size):
-                train_l, Z1, Z2, Sigma = trainloss_f(x,prob_init*exp(i*log(decay_rate)))
+                train_l, Z1, LogZ, Esamples, Logq = trainloss_f(x,prob_init*exp(i*log(decay_rate)))
                 if train_l>best_loss:
                     best_loss = train_l
                 if i%LOG_FREQ==0:
@@ -164,14 +160,13 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     train_a1,train_a5,train_a7,_,_,_ = eval_f(x)
                     train_a = np.array([train_a1,train_a5,train_a7])
                     # Test
-                    test_l, loglikelihood, sigma, lsigma, n = 0.0, 0.0, 0.0, 0.0, 0
+                    test_l, n = 0.0, 0
+                    loglikelihood = np.zeros((len(fractions)))
                     test_a = np.zeros((len(fractions)))
                     for x_test, y_test in dataset.iter("test", batch_size):
-                        l, z1, z2, sig, loglike, lz1, lz2, lsig = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
+                        l, z1, logZ, esamples, logq, ll100, ll500, ll1000, z11000, logZ1000, esamples1000, logq1000 = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
                         test_l += l
-                        loglikelihood += loglike
-                        sigma += sig
-                        lsigma += lsig
+                        loglikelihood += np.array([ll100, ll500, ll1000])
                         """
                         acc1,acc3,acc5,acc7,_,_,_,_ = eval_f(x_test)
                         test_a += np.array([acc1,acc3,acc5,acc7])
@@ -181,11 +176,9 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                         n += 1
                         if n==2:
                             break
-                    test_a = test_a/float(n)
                     test_l = test_l/float(n)
                     loglikelihood = loglikelihood/float(n)
-                    sigma = sigma/float(n)
-                    lsigma = lsigma/float(n)
+                    test_a = test_a/float(n)
                     if test_a[-1]>best_acc:
                         best_acc = test_a[-1]
                         """
@@ -196,29 +189,31 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                         save_params([recon1,recon5,recon7], result_file + '_best_recons', date_time=False)
                     # Store info
                     train_accuracy[(i)//LOG_FREQ] = train_a
-                    test_accuracy[(i)//LOG_FREQ] = test_a
-                    train_energy[(i)//LOG_FREQ] = np.asarray([Z1,Z2])
-                    test_energy[(i)//LOG_FREQ] = np.asarray([z1,z2])
+                    train_energy[(i)//LOG_FREQ] = np.asarray([Z1,LogZ])
                     train_loss[(i)//LOG_FREQ] = train_l
+                    train_samples[(i)//LOG_FREQ] = np.concatenate((Esamples,Logq), axis=-1)
+                    test_accuracy[(i)//LOG_FREQ] = test_a
+                    test_energy[(i)//LOG_FREQ] = np.asarray([z1,logZ])
                     test_loss[(i)//LOG_FREQ] = test_l
-                    train_sigma[(i)//LOG_FREQ] = Sigma
-                    test_sigma[(i)//LOG_FREQ] = sigma
+                    test_samples[(i)//LOG_FREQ] = np.concatenate((esamples,logq), axis=-1)
                     eval_loglike[(i)//LOG_FREQ] = loglikelihood
-                    eval_sigma[(i)//LOG_FREQ] = lsigma
+                    eval_energy[(i)//LOG_FREQ] = np.asarray([z11000,logZ1000])
+                    eval_samples[(i)//LOG_FREQ] = np.concatenate((esamples1000,logq1000), axis=-1)
                     ti = time.time() - s
                     time_ite[(i)//LOG_FREQ] = ti
                     norm_params[(i)//LOG_FREQ] = norm
                     # Save info
                     save_np(train_accuracy,'train_acc',result_file)
-                    save_np(test_accuracy,'test_acc',result_file)
                     save_np(train_energy,'train_energy',result_file)
-                    save_np(test_energy,'test_energy',result_file)
                     save_np(train_loss,'train_loss',result_file)
+                    save_params([train_samples],result_file + '_train_samples', date_time=False)
+                    save_np(test_accuracy,'test_acc',result_file)
+                    save_np(test_energy,'test_energy',result_file)
                     save_np(test_loss,'test_loss',result_file)
-                    save_np(train_sigma,'train_sigma',result_file)
-                    save_np(test_sigma,'test_sigma',result_file)
+                    save_params([test_samples],result_file + '_test_samples', date_time=False)
                     save_np(eval_loglike,'eval_loglike',result_file)
-                    save_np(eval_sigma,'eval_sigma',result_file)
+                    save_np(eval_energy,'eval_energy',result_file)
+                    save_params([eval_samples],result_file + '_eval_samples', date_time=False)
                     save_np(time_ite,'time',result_file)
                     save_np(norm_params,'norm_params',result_file)
                     # log info
@@ -296,6 +291,7 @@ if __name__ == "__main__":
     parser.add_argument("--nsamples", "-s", action='store', dest="nsamples", type=int, default=1)
     parser.add_argument("--objective","-o", action='store', dest="obj", type=str, default='CD')
     parser.add_argument("--mode","-m", action='store', dest="mode", type=str, default='train')
+    parser.add_argument("--results_directory","-d", action='store', dest="dir", type=str)
     options = parser.parse_args()
 
     # Get Data
@@ -306,8 +302,8 @@ if __name__ == "__main__":
         dataset.data[k] = ((0.5 < dataset.data[k][0][:-1]).astype(theano.config.floatX),dataset.data[k][1][:-1])
     dataset.data["train"] = (dataset.data[k][0][:options.num_data],dataset.data[k][1][:options.num_data])
 
-
     """
+
     main(dataset,batch_size=options.BATCH_SIZE,
                 num_epochs=options.NUM_EPOCH,
                 energy_type=options.energy,
@@ -315,7 +311,8 @@ if __name__ == "__main__":
                 sampling_method=options.sampling,
                 num_samples=options.nsamples,
                 obj_fct=options.obj,
-                mode=options.mode)
+                mode=options.mode,
+                directory=options.dir)
     """
 
     for nsampl in NUM_SAMPLES[::-1]:
@@ -329,4 +326,5 @@ if __name__ == "__main__":
                                     sampling_method=sampl,
                                     num_samples=nsampl,
                                     obj_fct=ob,
-                                    mode=options.mode)
+                                    mode=options.mode,
+                                    directory=options.dir)

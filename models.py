@@ -59,11 +59,20 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     updates = upd.adam(-loss, params, learning_rate=alpha)
     updates.update(updts) #we need to ad the update dictionary
 
-    # Logilike & variance evaluation with 10N samples
-    ev_samples, ev_logq, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 100*num_samples, srng, False)
-    ev_E_samples = energy(ev_samples)
-    ev_loss, ev_logZ, ev_z1, ev_z2 = objectives(E_data,ev_E_samples,ev_logq,obj_fct,approx_grad=True)
-    ev_sigma = variance_estimator(ev_logZ,ev_E_samples,ev_logq)
+    # Logilike & variance evaluation with 100,500,1000N samples
+    samples100, logq100, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 100*num_samples, srng, False)
+    E_samples100 = energy(samples100)
+    loss100, logZ100, z11000, _ = objectives(E_data,E_samples100,logq100,obj_fct,approx_grad=True)
+    #sigma100 = variance_estimator(logZ100,E_samples100,logq100)
+    samples500, logq500, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 500*num_samples, srng, False)
+    E_samples500 = energy(samples500)
+    loss500, logZ500, _, _ = objectives(E_data,E_samples500,logq500,obj_fct,approx_grad=True)
+    #sigma500 = variance_estimator(logZ500,E_samples500,logq500)
+    samples1000, logq1000, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 1000*num_samples, srng, False)
+    E_samples1000 = energy(samples1000)
+    loss1000, logZ1000, _, _ = objectives(E_data,E_samples1000,logq1000,obj_fct,approx_grad=True)
+    #sigma1000 = variance_estimator(logZ1000,E_samples1000,logq1000)
+
 
     # Evaluation (you lazy)
     recon_01, acc_01 = reconstruct_images(X, num_steps=num_steps_reconstruct,params=params,energy=energy,srng=srng,fraction=0.1,D=784)
@@ -72,8 +81,13 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     recon_07, acc_07 = reconstruct_images(X, num_steps=num_steps_reconstruct,params=params,energy=energy,srng=srng,fraction=0.7,D=784)
 
     # Build theano learning function
-    trainloss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2,sigma), updates=updates,on_unused_input='ignore')
-    testloss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,z2,sigma,ev_loss,ev_z1,ev_z2,ev_sigma),on_unused_input='ignore')
+    trainloss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,logZ,E_samples,logq), updates=updates,on_unused_input='ignore')
+    testloss_function = theano.function(inputs=[X,p_flip],
+                                        outputs=(loss,z1,logZ,E_samples,logq,
+                                                loss100,
+                                                loss500,
+                                                loss1000,z11000,logZ1000,E_samples1000,logq1000),
+                                        on_unused_input='ignore')
     #eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_03,acc_05,acc_07,recon_01,recon_03,recon_05,recon_07))
     eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_05,acc_07,recon_01,recon_05,recon_07))
 
