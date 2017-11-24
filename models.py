@@ -43,7 +43,7 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     E_data = energy(X)
 
     # Sampling from Q
-    samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, num_samples, srng, False)
+    samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, num_samples, srng, True)
     E_samples =energy(samples)
 
     # Build loss function, variance estimator, regularization & updates dictionary
@@ -60,15 +60,15 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     updates.update(updts) #we need to ad the update dictionary
 
     # Logilike & variance evaluation with 100,500,1000N samples
-    samples100, logq100, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 100*num_samples, srng, False)
+    samples100, logq100, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 100*num_samples, srng, True)
     E_samples100 = energy(samples100)
     loss100, logZ100, z11000, _ = objectives(E_data,E_samples100,logq100,obj_fct,approx_grad=True)
     #sigma100 = variance_estimator(logZ100,E_samples100,logq100)
-    samples500, logq500, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 500*num_samples, srng, False)
+    samples500, logq500, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 500*num_samples, srng, True)
     E_samples500 = energy(samples500)
     loss500, logZ500, _, _ = objectives(E_data,E_samples500,logq500,obj_fct,approx_grad=True)
     #sigma500 = variance_estimator(logZ500,E_samples500,logq500)
-    samples1000, logq1000, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 1000*num_samples, srng, False)
+    samples1000, logq1000, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 1000*num_samples, srng, True)
     E_samples1000 = energy(samples1000)
     loss1000, logZ1000, _, _ = objectives(E_data,E_samples1000,logq1000,obj_fct,approx_grad=True)
     #sigma1000 = variance_estimator(logZ1000,E_samples1000,logq1000)
