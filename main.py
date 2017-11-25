@@ -46,11 +46,18 @@ LR = 0.00005
 
 ######################################## Models architectures ########################################
 FC_net = {"hidden":3,"nhidden_0":D,"nhidden_1":1024,"nhidden_2":2048,"nhidden_3":2048,"noutput":1}
+"""
 CONV_net = {"conv":3,"nhidden_0":IM_SIZE,
             "filter_size_0":5,"num_filters_0":32,#conv1
             "filter_size_1":3,"num_filters_1":64,#conv2
             "filter_size_2":3,"num_filters_2":64,#conv3
             "FC_units":256,#FC1
+            "noutput":1}
+"""
+CONV_net = {"conv":2,"nhidden_0":IM_SIZE,
+            "filter_size_0":3,"num_filters_0":16,#conv1
+            "filter_size_1":3,"num_filters_1":32,#conv2
+            "FC_units":128,#FC1
             "noutput":1}
 arch = {"FC_net":FC_net, "CONV_net":CONV_net, "boltzman":FC_net}
 ######################################## helper ########################################
@@ -145,7 +152,6 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         for epoch in range(num_epochs):
             for x, y in dataset.iter("train", batch_size):
                 train_l, Z1, LogZ, Esamples, Logq = trainloss_f(x,prob_init*exp(i*log(decay_rate)))
-                print(LogZ)
                 if train_l>best_loss:
                     best_loss = train_l
                 if i%LOG_FREQ==0:
