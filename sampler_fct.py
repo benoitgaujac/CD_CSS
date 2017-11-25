@@ -63,7 +63,7 @@ def taylor_sample(X, E_data, num_samples, uniform_taylor, srng):
     """
     means = T.repeat(means.dimshuffle(["x", 0, 1]),num_samples,axis=0) #shape: (num_samples, batch, D)
     q_sample_ext = T.repeat(q_sample.dimshuffle([0, "x", 1]),X.shape[0],axis=1)  #shape: (num_samples, batch, D)
-    q_sample_ext = q_sample_ext * (1.0 - 2*eps) + eps
+    #q_sample_ext = q_sample_ext * (1.0 - 2*eps) + eps
     log_qx = -T.sum(T.nnet.binary_crossentropy(means,q_sample_ext),axis=-1,keepdims=False)  #shape: (num_samples, batch)
     #log[q(n)]
     log_qn = T.log(pvals) #shape: (1,batch)
