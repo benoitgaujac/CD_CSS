@@ -46,7 +46,6 @@ LR = 0.00005
 
 ######################################## Models architectures ########################################
 FC_net = {"hidden":3,"nhidden_0":D,"nhidden_1":1024,"nhidden_2":2048,"nhidden_3":2048,"noutput":1}
-"""
 CONV_net = {"conv":3,"nhidden_0":IM_SIZE,
             "filter_size_0":5,"num_filters_0":32,#conv1
             "filter_size_1":3,"num_filters_1":64,#conv2
@@ -59,6 +58,7 @@ CONV_net = {"conv":2,"nhidden_0":IM_SIZE,
             "filter_size_1":3,"num_filters_1":16,#conv2
             "FC_units":128,#FC1
             "noutput":1}
+"""
 arch = {"FC_net":FC_net, "CONV_net":CONV_net, "boltzman":FC_net}
 ######################################## helper ########################################
 def save_np(array,name,path,column=False):
@@ -137,11 +137,13 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         train_accuracy  = np.zeros(shape)
         train_energy    = np.zeros((shape[0],2))
         train_loss      = np.zeros(shape[0])
-        train_samples   = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
+        #train_samples   = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
+        train_samples   = np.zeros((shape[0],5,2))
         test_accuracy   = np.zeros(shape)
         test_energy     = np.zeros((shape[0],2))
         test_loss       = np.zeros(shape[0])
-        test_samples    = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
+        #test_samples    = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
+        test_samples    = np.zeros((shape[0],5,2))
         eval_loglike    = np.zeros(shape)
         eval_energy     = np.zeros((shape[0],1))
         eval_samples    = np.zeros((shape[0],1000*BATCH_SIZE*num_samples,2))
