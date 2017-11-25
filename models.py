@@ -78,15 +78,11 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
 
     # Build theano learning function
     trainloss_function = theano.function(inputs=[X,p_flip], outputs=(loss,z1,logZ,E_samples,logq), updates=updates,on_unused_input='ignore')
-    #testloss_function = theano.function(inputs=[X,p_flip],
-    #                                    outputs=(loss,z1,logZ,E_samples,logq,
-    #                                            loss100,logZ1000,E_samples1000,logq1000
-    #                                            loss500,
-    #                                            loss1000,logZ1000,E_samples1000,logq1000),
-    #                                    on_unused_input='ignore')
     testloss_function = theano.function(inputs=[X,p_flip],
                                         outputs=(loss,z1,logZ,E_samples,logq,
-                                                loss100,logZ100,E_samples100,logq100),
+                                                loss100,logZ1000,E_samples1000,logq1000
+                                                loss500,
+                                                loss1000,logZ1000,E_samples1000,logq1000),
                                         on_unused_input='ignore')
     #eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_03,acc_05,acc_07,recon_01,recon_03,recon_05,recon_07))
     eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_05,acc_07,recon_01,recon_05,recon_07))
