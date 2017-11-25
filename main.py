@@ -23,8 +23,8 @@ from models import build_model
 from energy_fct import net_energy, botlmzan_energy
 from utils import build_net
 
-#objectives = ['CSS','CD',]
-objectives = ['CSS',]
+objectives = ['CSS','CD',]
+#objectives = ['CSS',]
 #ene = ['CONV_net','boltzman','FC_net']
 ene = ['CONV_net','boltzman']
 samp = ['taylor_uniform','taylor_softmax','uniform']
@@ -39,7 +39,7 @@ IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
 BATCH_SIZE = 32 # batch size
 NUM_EPOCH = 10
-LOG_FREQ = 32
+LOG_FREQ = 128
 NUM_RECON = 10
 IND_RECON = 2000
 LR = 0.00005
