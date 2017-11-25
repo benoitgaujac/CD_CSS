@@ -58,8 +58,7 @@ def taylor_sample(X, E_data, num_samples, uniform_taylor, srng):
     means = means.dimshuffle([0, "x", 1]) # (batch, 1, D)
     q_sample_s = q_sample.dimshuffle(["x", 0, 1])  # (1, num_samples, D)
     mix_comps = T.switch(T.eq(q_sample_s, 0), 1 - means, means)  # (batch, num_samples, D)
-    mix_comps = T.sum(T.log(mix_comps), axis=2)  # (batch, num_samples)
-    log_probs = logsumexp(mix_comps.T + T.log(pvals))  # (num_samples,1)
+    log_qx = T.sum(T.log(mix_comps), axis=2).T  # (batch, num_samples)
     """
     means = T.repeat(means.dimshuffle(["x", 0, 1]),num_samples,axis=0) #shape: (num_samples, batch, D)
     q_sample_ext = T.repeat(q_sample.dimshuffle([0, "x", 1]),X.shape[0],axis=1)  #shape: (num_samples, batch, D)
