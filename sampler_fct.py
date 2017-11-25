@@ -9,7 +9,7 @@ from utils import logsumexp
 
 eps=1e-6
 
-def sampler(x, energy, E_data, num_steps, params, p_flip, sampling_method, num_samples, srng, uniform_taylor=True):
+def sampler(x, energy, E_data, num_steps, params, p_flip, sampling_method, num_samples, srng):
     """
     Sampler for MC approximation of the energy. Return samples.
     -x:                 Input data
@@ -19,14 +19,15 @@ def sampler(x, energy, E_data, num_steps, params, p_flip, sampling_method, num_s
     -params:            Params of the model
     -sampling_method:   Sampling method used for sampling (gibbs, taylor, uniform)
     -num_samples:       Number of samples for importance sampling/MC
-    -uniform_taylor:    Weather or not to use uniform mixture weights for taylor distribution
     """
     if sampling_method=="gibbs":
         # TODO
         pass
         #samples, logq, updates = gibbs_sample(x, energy, num_steps, num_samples, params, srng)
-    elif sampling_method=="taylor":
-        samples, logq, updates = taylor_sample(x, E_data, num_samples, uniform_taylor, srng)
+    elif sampling_method=="taylor_uniform":
+        samples, logq, updates = taylor_sample(x, E_data, num_samples, True, srng)
+    elif sampling_method=="taylor_softmax":
+        samples, logq, updates = taylor_sample(x, E_data, num_samples, False, srng)
     elif sampling_method=="uniform":
         samples, logq, updates = uniform(x, num_samples, srng)
     elif sampling_method=="stupid_q":
@@ -56,7 +57,8 @@ def taylor_sample(X, E_data, num_samples, uniform_taylor, srng):
     #log[q(xs|n)]
     means = T.repeat(means.dimshuffle(["x", 0, 1]),num_samples,axis=0) #shape: (num_samples, batch, D)
     q_sample_ext = T.repeat(q_sample.dimshuffle([0, "x", 1]),X.shape[0],axis=1)  #shape: (num_samples, batch, D)
-    log_qx = -T.sum(T.nnet.nnet.binary_crossentropy(means,q_sample_ext),axis=-1,keepdims=False)  #shape: (num_samples, batch)
+    q_sample_ext = q_sample_ext * (1.0 - 2*eps) + eps    
+    log_qx = -T.sum(T.nnet.binary_crossentropy(means,q_sample_ext),axis=-1,keepdims=False)  #shape: (num_samples, batch)
     #log[q(n)]
     log_qn = T.log(pvals) #shape: (1,batch)
     log_q = logsumexp(log_qx + log_qn)  #shape: (num_samples,1)

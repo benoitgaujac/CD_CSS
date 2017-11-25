@@ -26,7 +26,7 @@ from utils import build_net
 objectives = ['CSS','CD',]
 #ene = ['CONV_net','boltzman','FC_net']
 ene = ['CONV_net','boltzman']
-samp = ['taylor','uniform']
+samp = ['taylor_uniform','taylor_softmax','uniform']
 #samp = ['taylor',]
 #fractions = [0.1,0.3,0.5,0.7]
 fractions = [0.1,0.5,0.7]
@@ -135,7 +135,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         test_loss       = np.zeros(shape[0])
         test_samples    = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
         eval_loglike    = np.zeros(shape)
-        eval_energy     = np.zeros((shape[0],2))
+        eval_energy     = np.zeros((shape[0],1))
         eval_samples    = np.zeros((shape[0],1000*BATCH_SIZE*num_samples,2))
         time_ite        = np.zeros(shape[0])
         norm_params     = np.zeros((shape[0],len(params)))
@@ -144,6 +144,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         for epoch in range(num_epochs):
             for x, y in dataset.iter("train", batch_size):
                 train_l, Z1, LogZ, Esamples, Logq = trainloss_f(x,prob_init*exp(i*log(decay_rate)))
+                print(LogZ)
                 if train_l>best_loss:
                     best_loss = train_l
                 if i%LOG_FREQ==0:
@@ -164,7 +165,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     loglikelihood = np.zeros((len(fractions)))
                     test_a = np.zeros((len(fractions)))
                     for x_test, y_test in dataset.iter("test", batch_size):
-                        l, z1, logZ, esamples, logq, ll100, ll500, ll1000, z11000, logZ1000, esamples1000, logq1000 = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
+                        l, z1, logZ, esamples, logq, ll100, ll500, ll1000, logZ1000, esamples1000, logq1000 = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
                         test_l += l
                         loglikelihood += np.array([ll100, ll500, ll1000])
                         """
@@ -174,7 +175,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                         acc1,acc5,acc7,_,_,_ = eval_f(x_test)
                         test_a += np.array([acc1,acc5,acc7])
                         n += 1
-                        if n==2:
+                        if n==1:
                             break
                     test_l = test_l/float(n)
                     loglikelihood = loglikelihood/float(n)
@@ -197,7 +198,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     test_loss[(i)//LOG_FREQ] = test_l
                     test_samples[(i)//LOG_FREQ] = np.concatenate((esamples,logq), axis=-1)
                     eval_loglike[(i)//LOG_FREQ] = loglikelihood
-                    eval_energy[(i)//LOG_FREQ] = np.asarray([z11000,logZ1000])
+                    eval_energy[(i)//LOG_FREQ] = np.asarray([logZ1000])
                     eval_samples[(i)//LOG_FREQ] = np.concatenate((esamples1000,logq1000), axis=-1)
                     ti = time.time() - s
                     time_ite[(i)//LOG_FREQ] = ti

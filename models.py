@@ -43,12 +43,11 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     E_data = energy(X)
 
     # Sampling from Q
-    samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, num_samples, srng, True)
+    samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, num_samples, srng)
     E_samples =energy(samples)
 
     # Build loss function, variance estimator, regularization & updates dictionary
     loss, logZ, z1, z2 = objectives(E_data,E_samples,logq,obj_fct,approx_grad=True)
-    sigma = variance_estimator(logZ,E_samples,logq)
     if regularization and energy_type!='boltzman':
         all_layers = lasagne.layers.get_all_layers(l_out)
         layers={}
@@ -60,18 +59,15 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     updates.update(updts) #we need to ad the update dictionary
 
     # Logilike & variance evaluation with 100,500,1000N samples
-    samples100, logq100, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 100*num_samples, srng, True)
+    samples100, logq100, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 100*num_samples, srng)
     E_samples100 = energy(samples100)
-    loss100, logZ100, z11000, _ = objectives(E_data,E_samples100,logq100,obj_fct,approx_grad=True)
-    #sigma100 = variance_estimator(logZ100,E_samples100,logq100)
-    samples500, logq500, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 500*num_samples, srng, True)
+    loss100, logZ100, _, _ = objectives(E_data,E_samples100,logq100,obj_fct,approx_grad=True)
+    samples500, logq500, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 500*num_samples, srng)
     E_samples500 = energy(samples500)
     loss500, logZ500, _, _ = objectives(E_data,E_samples500,logq500,obj_fct,approx_grad=True)
-    #sigma500 = variance_estimator(logZ500,E_samples500,logq500)
-    samples1000, logq1000, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 1000*num_samples, srng, True)
+    samples1000, logq1000, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 1000*num_samples, srng)
     E_samples1000 = energy(samples1000)
     loss1000, logZ1000, _, _ = objectives(E_data,E_samples1000,logq1000,obj_fct,approx_grad=True)
-    #sigma1000 = variance_estimator(logZ1000,E_samples1000,logq1000)
 
 
     # Evaluation (you lazy)
@@ -86,7 +82,7 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
                                         outputs=(loss,z1,logZ,E_samples,logq,
                                                 loss100,
                                                 loss500,
-                                                loss1000,z11000,logZ1000,E_samples1000,logq1000),
+                                                loss1000,logZ1000,E_samples1000,logq1000),
                                         on_unused_input='ignore')
     #eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_03,acc_05,acc_07,recon_01,recon_03,recon_05,recon_07))
     eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_05,acc_07,recon_01,recon_05,recon_07))
