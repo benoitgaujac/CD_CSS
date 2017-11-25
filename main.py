@@ -23,8 +23,8 @@ from models import build_model
 from energy_fct import net_energy, botlmzan_energy
 from utils import build_net
 
-#objectives = ['CSS','CD',]
-objectives = ['CSS',]
+objectives = ['CSS','CD',]
+#objectives = ['CSS',]
 #ene = ['CONV_net','boltzman','FC_net']
 ene = ['CONV_net','boltzman']
 samp = ['taylor_uniform','taylor_softmax','uniform']
@@ -39,7 +39,7 @@ IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
 BATCH_SIZE = 32 # batch size
 NUM_EPOCH = 10
-LOG_FREQ = 32
+LOG_FREQ = 128
 NUM_RECON = 10
 IND_RECON = 2000
 LR = 0.00005
@@ -142,9 +142,11 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         test_energy     = np.zeros((shape[0],2))
         test_loss       = np.zeros(shape[0])
         test_samples    = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
-        eval_loglike    = np.zeros(shape)
+        #eval_loglike    = np.zeros(shape)
+        eval_loglike    = np.zeros((shape[0],1))
         eval_energy     = np.zeros((shape[0],1))
-        eval_samples    = np.zeros((shape[0],1000*BATCH_SIZE*num_samples,2))
+        #eval_samples    = np.zeros((shape[0],1000*BATCH_SIZE*num_samples,2))
+        eval_samples    = np.zeros((shape[0],100*BATCH_SIZE*num_samples,2))
         time_ite        = np.zeros(shape[0])
         norm_params     = np.zeros((shape[0],len(params)))
         i, s = 0, time.time() #counter for iteration, time
@@ -169,12 +171,15 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     train_a = np.array([train_a1,train_a5,train_a7])
                     # Test
                     test_l, n = 0.0, 0
-                    loglikelihood = np.zeros((len(fractions)))
+                    #loglikelihood = np.zeros((len(fractions)))
+                    loglikelihood = np.zeros((1,))
                     test_a = np.zeros((len(fractions)))
                     for x_test, y_test in dataset.iter("test", batch_size):
-                        l, z1, logZ, esamples, logq, ll100, ll500, ll1000, logZ1000, esamples1000, logq1000 = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
+                        #l, z1, logZ, esamples, logq, ll100, ll500, ll1000, logZ1000, esamples1000, logq1000 = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
+                        l, z1, logZ, esamples, logq, ll100, logZ100,esamples100,logq100 = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
                         test_l += l
-                        loglikelihood += np.array([ll100, ll500, ll1000])
+                        #loglikelihood += np.array([ll100, ll500, ll1000])
+                        loglikelihood += np.array([ll100,])
                         """
                         acc1,acc3,acc5,acc7,_,_,_,_ = eval_f(x_test)
                         test_a += np.array([acc1,acc3,acc5,acc7])
@@ -205,8 +210,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     test_loss[(i)//LOG_FREQ] = test_l
                     test_samples[(i)//LOG_FREQ] = np.concatenate((esamples,logq), axis=-1)
                     eval_loglike[(i)//LOG_FREQ] = loglikelihood
-                    eval_energy[(i)//LOG_FREQ] = np.asarray([logZ1000])
-                    eval_samples[(i)//LOG_FREQ] = np.concatenate((esamples1000,logq1000), axis=-1)
+                    eval_energy[(i)//LOG_FREQ] = np.asarray([logZ100])
+                    eval_samples[(i)//LOG_FREQ] = np.concatenate((esamples100,logq100), axis=-1)
                     ti = time.time() - s
                     time_ite[(i)//LOG_FREQ] = ti
                     norm_params[(i)//LOG_FREQ] = norm
