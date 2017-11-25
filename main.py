@@ -56,7 +56,7 @@ CONV_net = {"conv":3,"nhidden_0":IM_SIZE,
 """
 CONV_net = {"conv":2,"nhidden_0":IM_SIZE,
             "filter_size_0":3,"num_filters_0":16,#conv1
-            "filter_size_1":3,"num_filters_1":32,#conv2
+            "filter_size_1":3,"num_filters_1":16,#conv2
             "FC_units":128,#FC1
             "noutput":1}
 arch = {"FC_net":FC_net, "CONV_net":CONV_net, "boltzman":FC_net}
