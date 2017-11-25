@@ -26,8 +26,8 @@ from utils import build_net
 objectives = ['CSS','CD',]
 #ene = ['CONV_net','boltzman','FC_net']
 ene = ['CONV_net','boltzman']
-samp = ['taylor_uniform','taylor_softmax','uniform']
-#samp = ['taylor',]
+#samp = ['taylor_uniform','taylor_softmax','uniform']
+samp = ['taylor_uniform','taylor_softmax',]
 #fractions = [0.1,0.3,0.5,0.7]
 fractions = [0.1,0.5,0.7]
 
