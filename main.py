@@ -23,7 +23,8 @@ from models import build_model
 from energy_fct import net_energy, botlmzan_energy
 from utils import build_net
 
-objectives = ['CSS','CD',]
+#objectives = ['CSS','CD',]
+objectives = ['CSS',]
 #ene = ['CONV_net','boltzman','FC_net']
 ene = ['CONV_net','boltzman']
 #samp = ['taylor_uniform','taylor_softmax','uniform']
