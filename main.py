@@ -23,8 +23,8 @@ from models import build_model
 from energy_fct import net_energy, botlmzan_energy
 from utils import build_net
 
-objectives = ['CSS','CD',]
-#objectives = ['CSS',]
+#objectives = ['CSS','CD',]
+objectives = ['CSS',]
 #ene = ['CONV_net','boltzman','FC_net']
 ene = ['CONV_net','boltzman']
 samp = ['taylor_uniform','taylor_softmax','uniform']
@@ -137,13 +137,11 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         train_accuracy  = np.zeros(shape)
         train_energy    = np.zeros((shape[0],2))
         train_loss      = np.zeros(shape[0])
-        #train_samples   = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
-        train_samples   = np.zeros((shape[0],5,2))
+        train_samples   = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
         test_accuracy   = np.zeros(shape)
         test_energy     = np.zeros((shape[0],2))
         test_loss       = np.zeros(shape[0])
-        #test_samples    = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
-        test_samples    = np.zeros((shape[0],5,2))
+        test_samples    = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
         eval_loglike    = np.zeros(shape)
         eval_energy     = np.zeros((shape[0],1))
         eval_samples    = np.zeros((shape[0],1000*BATCH_SIZE*num_samples,2))
