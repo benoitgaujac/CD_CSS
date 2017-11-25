@@ -41,7 +41,7 @@ def build_net(architecture, energy_type='FC_net'):
             l = lg.layers.DenseLayer(l, num_units=architecture["nhidden_"+str(i+1)],
                                         W=lg.init.GlorotUniform(),
                                         b=lg.init.Constant(0.),
-                                        nonlinearity=lg.nonlinearities.tanh)
+                                        nonlinearity=lg.nonlinearities.elu)
         # Output layer
         l_out = lg.layers.DenseLayer(l, num_units=architecture["noutput"],
                                         W=lg.init.GlorotUniform(),
@@ -64,7 +64,7 @@ def build_net(architecture, energy_type='FC_net'):
         l = lg.layers.DenseLayer(l, num_units=architecture["FC_units"],
                                     W=lg.init.GlorotUniform(),
                                     b=lg.init.Constant(0.),
-                                    nonlinearity=lg.nonlinearities.tanh)
+                                    nonlinearity=lg.nonlinearities.elu)
         ## output
         l_out = lg.layers.DenseLayer(l, num_units=architecture["noutput"],
                                         W=lg.init.GlorotUniform(),
