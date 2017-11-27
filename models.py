@@ -43,8 +43,8 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     E_data = energy(X)
 
     # Sampling from Q
-    #samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, num_samples, srng)
-    samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 5, srng)
+    samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, num_samples, srng)
+    #samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 5, srng)
     E_samples =energy(samples)
 
     # Build loss function, variance estimator, regularization & updates dictionary
