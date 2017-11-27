@@ -146,7 +146,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         #test_samples    = np.zeros((shape[0],5,2))
         eval_loglike    = np.zeros(shape)
         eval_energy     = np.zeros((shape[0],1))
-        eval_samples    = np.zeros((shape[0],1000*BATCH_SIZE*num_samples,2))
+        #eval_samples    = np.zeros((shape[0],1000*BATCH_SIZE*num_samples,2))
+        eval_samples    = np.zeros((shape[0],100*BATCH_SIZE*num_samples,2))
         time_ite        = np.zeros(shape[0])
         norm_params     = np.zeros((shape[0],len(params)))
         i, s = 0, time.time() #counter for iteration, time
