@@ -7,7 +7,7 @@ from theano.gradient import zero_grad
 
 from utils import logsumexp
 
-eps=1e-4
+eps=1e-6
 
 def sampler(x, energy, E_data, num_steps, params, p_flip, sampling_method, num_samples, srng):
     """
