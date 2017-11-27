@@ -56,8 +56,8 @@ def build_net(architecture, energy_type='FC_net'):
                                         W=lg.init.GlorotUniform(),
                                         b=lg.init.Constant(0.),
                                         nonlinearity=lg.nonlinearities.elu)
-            #if i==0:
-            #    l = lg.layers.MaxPool2DLayer(l, pool_size=(2, 2))
+            if i==0:
+                l = lg.layers.MaxPool2DLayer(l, pool_size=(2, 2))
         ## Pooling
         l = lg.layers.MaxPool2DLayer(l, pool_size=(2, 2))
         ## Dense layer
