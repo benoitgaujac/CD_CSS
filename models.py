@@ -60,6 +60,7 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     updates.update(updts) #we need to ad the update dictionary
 
     # Logilike & variance evaluation with 100,500,1000N samples
+    """
     samples100, logq100, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 100*num_samples, srng)
     E_samples100 = energy(samples100)
     loss100, logZ100, _, _ = objectives(E_data,E_samples100,logq100,obj_fct,approx_grad=True)
@@ -67,6 +68,16 @@ def build_model(X, obj_fct, alpha, sampling_method, p_flip,
     E_samples500 = energy(samples500)
     loss500, logZ500, _, _ = objectives(E_data,E_samples500,logq500,obj_fct,approx_grad=True)
     samples1000, logq1000, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 1000*num_samples, srng)
+    E_samples1000 = energy(samples1000)
+    loss1000, logZ1000, _, _ = objectives(E_data,E_samples1000,logq1000,obj_fct,approx_grad=True)
+    """
+    samples100, logq100, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 10*num_samples, srng)
+    E_samples100 = energy(samples100)
+    loss100, logZ100, _, _ = objectives(E_data,E_samples100,logq100,obj_fct,approx_grad=True)
+    samples500, logq500, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 50*num_samples, srng)
+    E_samples500 = energy(samples500)
+    loss500, logZ500, _, _ = objectives(E_data,E_samples500,logq500,obj_fct,approx_grad=True)
+    samples1000, logq1000, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 100*num_samples, srng)
     E_samples1000 = energy(samples1000)
     loss1000, logZ1000, _, _ = objectives(E_data,E_samples1000,logq1000,obj_fct,approx_grad=True)
 

@@ -32,7 +32,8 @@ samp = ['taylor_uniform','taylor_softmax','uniform']
 #fractions = [0.1,0.3,0.5,0.7]
 fractions = [0.1,0.5,0.7]
 
-NUM_SAMPLES = [1,5,10] # Nb of sampling steps
+#NUM_SAMPLES = [1,5,10] # Nb of sampling steps
+NUM_SAMPLES = [5,10] # Nb of sampling steps
 NUM_SAMPLES = [1,] # Nb of sampling steps
 RECONSTRUCT_STEPS = 10 # Nb of Gibbs steps for reconstruction
 IM_SIZE = 28 # MNIST images size
