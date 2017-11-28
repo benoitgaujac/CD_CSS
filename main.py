@@ -25,8 +25,8 @@ from utils import build_net
 
 objectives = ['CSS','CD',]
 #objectives = ['CSS',]
-ene = ['FC_net',]
-#ene = ['CONV_net','boltzman']
+#ene = ['FC_net',]
+ene = ['CONV_net','boltzman']
 samp = ['taylor_uniform','taylor_softmax','uniform']
 #samp = ['taylor_uniform','taylor_softmax',]
 #fractions = [0.1,0.3,0.5,0.7]
