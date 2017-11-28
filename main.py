@@ -25,8 +25,8 @@ from utils import build_net
 
 objectives = ['CSS','CD',]
 #objectives = ['CSS',]
-#ene = ['boltzman','FC_net']
-ene = ['CONV_net','boltzman']
+ene = ['FC_net',]
+#ene = ['CONV_net','boltzman']
 samp = ['taylor_uniform','taylor_softmax','uniform']
 #samp = ['taylor_uniform','taylor_softmax',]
 #fractions = [0.1,0.3,0.5,0.7]
@@ -121,7 +121,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         # Input tensor
         X = T.matrix()
         # Build Model
-        print("\ncompiling model " + energy_type + " with " + sampling_method + " sampling with " + str(num_samples) + "samples for " + obj_fct + " objective...")
+        print("\ncompiling " + energy_type + " with " + sampling_method + " " + str(num_samples) + "samples for " + obj_fct + " objective...")
         trainloss_f, testloss_f, eval_f, l_out, params = build_model(X, obj_fct=obj_fct,
                                                                         alpha=LR,
                                                                         sampling_method=sampling_method,
@@ -137,13 +137,13 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         train_accuracy  = np.zeros(shape)
         train_energy    = np.zeros((shape[0],2))
         train_loss      = np.zeros(shape[0])
-        #train_samples   = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
-        train_samples   = np.zeros((shape[0],5,2))
+        train_samples   = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
+        #train_samples   = np.zeros((shape[0],5,2))
         test_accuracy   = np.zeros(shape)
         test_energy     = np.zeros((shape[0],2))
         test_loss       = np.zeros(shape[0])
-        #test_samples    = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
-        test_samples    = np.zeros((shape[0],5,2))
+        test_samples    = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
+        #test_samples    = np.zeros((shape[0],5,2))
         eval_loglike    = np.zeros(shape)
         eval_energy     = np.zeros((shape[0],1))
         eval_samples    = np.zeros((shape[0],1000*BATCH_SIZE*num_samples,2))
