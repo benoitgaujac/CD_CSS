@@ -115,7 +115,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         print("\ncompiling " + energy_type + " with " + sampling_method + " " + str(num_samples) + "samples for " + obj_fct + " objective...")
         trainloss_f, testloss_f, eval_f, params = build_model(X, obj_fct=obj_fct,
                                                                         alpha=LR,
-                                                                        datasize = T.cast(dataset.data["train"][0].shape[0],,theano.config.floatX),
+                                                                        datasize = T.cast(dataset.data["train"][0].shape[0],theano.config.floatX),
                                                                         sampling_method=sampling_method,
                                                                         p_flip = p_flip,
                                                                         num_samples=batch_size*num_samples,
