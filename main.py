@@ -151,12 +151,6 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                 if i%LOG_FREQ==0:
                     # Compute params params norm
                     norm = [np.sum(W.get_value()**2)/float(W.get_value().size) for W in params]
-                    """
-                    if energy_type=='boltzman':
-                        norm = [np.sum(W.get_value()**2)/float(W.get_value().size) for W in params]
-                    elif energy_type[-3:]=='net':
-                        norm = [np.sum(W**2)/float(W.size) for W in lg.layers.get_all_param_values(l_out)]
-                    """
                     # Eval train
                     train_a1,train_a5,train_a7,_,_,_ = eval_f(x)
                     train_a = np.array([train_a1,train_a5,train_a7])
@@ -229,14 +223,6 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         # Save final params
         print("Saving weights..")
         save_params([W.get_value() for W in params], checkpoint_file,False)
-        """
-        if energy_type=='boltzman':
-            save_params([W.get_value() for W in params], checkpoint_file,False)
-        elif energy_type[-3:]=='net':
-            save_params(lg.layers.get_all_param_values(l_out), checkpoint_file,False)
-        else:
-            raise ValueError("Incorrect Energy. Not net or boltzman.")
-        """
 
     elif mode=="energy":
         # Load data
