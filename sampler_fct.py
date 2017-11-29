@@ -21,8 +21,8 @@ def sampler(x, energy, E_data, num_steps, params, p_flip, sampling_method, num_s
     -num_samples:       Number of samples for importance sampling/MC
     """
     if sampling_method=="gibbs":
-        # TODO
         pass
+        #todo
         #samples, logq, updates = gibbs_sample(x, energy, num_steps, num_samples, params, srng)
     elif sampling_method=="taylor_uniform":
         samples, logq, updates = taylor_sample(x, E_data, num_samples, True, srng)
@@ -31,7 +31,9 @@ def sampler(x, energy, E_data, num_steps, params, p_flip, sampling_method, num_s
     elif sampling_method=="uniform":
         samples, logq, updates = uniform(x, num_samples, srng)
     elif sampling_method=="stupid_q":
-        samples, logq, updates = stupidq(x,p_flip,srng)
+        pass
+        #todo
+        #samples, logq, updates = stupidq(x,p_flip,srng)
     else:
         raise ValueError("Incorrect sampling method. Not gibbs nor naive_taylor.")
 
@@ -55,12 +57,6 @@ def taylor_sample(X, E_data, num_samples, uniform_taylor, srng):
 
     # Calculate log[q(xs)]
     #log[q(xs|n)]
-    """
-    means = means.dimshuffle([0, "x", 1]) # (batch, 1, D)
-    q_sample_s = q_sample.dimshuffle(["x", 0, 1])  # (1, num_samples, D)
-    mix_comps = T.switch(T.eq(q_sample_s, 0), 1 - means, means)  # (batch, num_samples, D)
-    log_qx = T.sum(T.log(mix_comps), axis=2).T  # (batch, num_samples)
-    """
     means = T.repeat(means.dimshuffle(["x", 0, 1]),num_samples,axis=0) #shape: (num_samples, batch, D)
     q_sample_ext = T.repeat(q_sample.dimshuffle([0, "x", 1]),X.shape[0],axis=1)  #shape: (num_samples, batch, D)
     q_sample_ext = q_sample_ext * (1.0 - 2*eps) + eps
@@ -92,7 +88,7 @@ def build_taylor_q(X, E_data, uniform):
 
 def uniform(X, num_samples, srng):
     """
-    Sample from uniform.
+    Sample from uniform q.
     -X: batch x D
     """
     # Sampling from uniform

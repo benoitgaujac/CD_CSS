@@ -73,21 +73,9 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, p_flip,
     E_samples1000 = energy(samples1000)
     loss1000, logZ1000, _, _ = objectives(E_data,E_samples1000,logq1000,obj_fct,datasize,approx_grad=True)
     sig1000 = variance_estimator(E_data,E_samples1000,logq1000,logZ1000,datasize)
-    """
-    samples100, logq100, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 10*num_samples, srng)
-    E_samples100 = energy(samples100)
-    loss100, logZ100, _, _ = objectives(E_data,E_samples100,logq100,obj_fct,approx_grad=True)
-    samples500, logq500, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 50*num_samples, srng)
-    E_samples500 = energy(samples500)
-    loss500, logZ500, _, _ = objectives(E_data,E_samples500,logq500,obj_fct,approx_grad=True)
-    samples1000, logq1000, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 100*num_samples, srng)
-    E_samples1000 = energy(samples1000)
-    loss1000, logZ1000, _, _ = objectives(E_data,E_samples1000,logq1000,obj_fct,approx_grad=True)
-    """
 
     # Evaluation (you lazy)
     recon_01, acc_01 = reconstruct_images(X, num_steps=num_steps_reconstruct,params=params,energy=energy,srng=srng,fraction=0.1,D=784)
-    recon_03, acc_03 = reconstruct_images(X, num_steps=num_steps_reconstruct,params=params,energy=energy,srng=srng,fraction=0.3,D=784)
     recon_05, acc_05 = reconstruct_images(X, num_steps=num_steps_reconstruct,params=params,energy=energy,srng=srng,fraction=0.5,D=784)
     recon_07, acc_07 = reconstruct_images(X, num_steps=num_steps_reconstruct,params=params,energy=energy,srng=srng,fraction=0.7,D=784)
 
@@ -107,4 +95,4 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, p_flip,
     debugf = theano.function(inputs=[X,p_flip], outputs=(samples_10, logq_10, E_samples),on_unused_input='ignore')
     """
 
-    return trainloss_function, testloss_function, eval_function, l_out, params
+    return trainloss_function, testloss_function, eval_function, params
