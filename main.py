@@ -27,8 +27,8 @@ objectives = ['CSS','CD',]
 #objectives = ['CSS',]
 #ene = ['FC_net',]
 ene = ['CONV_net','boltzman']
-samp = ['taylor_uniform','taylor_softmax','uniform']
-#samp = ['taylor_uniform','taylor_softmax',]
+#samp = ['taylor_uniform','taylor_softmax','uniform']
+samp = ['uniform',]
 #fractions = [0.1,0.3,0.5,0.7]
 fractions = [0.1,0.5,0.7]
 
@@ -124,6 +124,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         print("\ncompiling " + energy_type + " with " + sampling_method + " " + str(num_samples) + "samples for " + obj_fct + " objective...")
         trainloss_f, testloss_f, eval_f, l_out, params = build_model(X, obj_fct=obj_fct,
                                                                         alpha=LR,
+                                                                        datasize = dataset.data["train"][0].shape[0],
                                                                         sampling_method=sampling_method,
                                                                         p_flip = p_flip,
                                                                         num_samples=BATCH_SIZE*num_samples,
@@ -137,14 +138,14 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         train_accuracy  = np.zeros(shape)
         train_energy    = np.zeros((shape[0],2))
         train_loss      = np.zeros(shape[0])
-        #train_samples   = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
-        train_samples   = np.zeros((shape[0],5,2))
+        train_samples   = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
+        #train_samples   = np.zeros((shape[0],5,2))
         test_accuracy   = np.zeros(shape)
         test_energy     = np.zeros((shape[0],2))
         test_loss       = np.zeros(shape[0])
-        #test_samples    = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
-        test_samples    = np.zeros((shape[0],5,2))
-        eval_loglike    = np.zeros(shape)
+        test_samples    = np.zeros((shape[0],BATCH_SIZE*num_samples,2))
+        #test_samples    = np.zeros((shape[0],5,2))
+        eval_loglike    = np.zeros(shape[0])
         eval_energy     = np.zeros((shape[0],1))
         eval_samples    = np.zeros((shape[0],1000*BATCH_SIZE*num_samples,2))
         #eval_samples    = np.zeros((shape[0],100*BATCH_SIZE*num_samples,2))
@@ -171,13 +172,13 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     train_a1,train_a5,train_a7,_,_,_ = eval_f(x)
                     train_a = np.array([train_a1,train_a5,train_a7])
                     # Test
-                    test_l, n = 0.0, 0
-                    loglikelihood = np.zeros((len(fractions)))
+                    test_l, loglikelihood, n = 0.0, 0.0, 0
+                    loglikelihood = np.zeros((1))
                     test_a = np.zeros((len(fractions)))
                     for x_test, y_test in dataset.iter("test", batch_size):
-                        l, z1, logZ, esamples, logq, ll100, ll500, ll1000, logZ1000, esamples1000, logq1000 = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
+                        l, z1, logZ, esamples, logq, ll1000, logZ1000, esamples1000, logq1000 = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
                         test_l += l
-                        loglikelihood += np.array([ll100, ll500, ll1000])
+                        loglikelihood += ll1000
                         """
                         acc1,acc3,acc5,acc7,_,_,_,_ = eval_f(x_test)
                         test_a += np.array([acc1,acc3,acc5,acc7])
@@ -311,7 +312,8 @@ if __name__ == "__main__":
 
     for k in ("train", "valid", "test"):
         dataset.data[k] = ((0.5 < dataset.data[k][0][:-1]).astype(theano.config.floatX),dataset.data[k][1][:-1])
-    dataset.data["train"] = (dataset.data[k][0][:options.num_data],dataset.data[k][1][:options.num_data])
+    dataset.data["train"] = (dataset.data["train"][0][:options.num_data],dataset.data["train"][1][:options.num_data])
+    pdb.set_trace()
 
     """
 

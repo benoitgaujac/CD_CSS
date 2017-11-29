@@ -8,17 +8,17 @@ from utils import logsumexp
 
 eps=1e-6
 
-def objectives(E_data,E_samples,log_q,obj_fct,approx_grad=True):
+def objectives(E_data,E_samples,log_q,obj_fct,datasize,approx_grad=True):
     if obj_fct=='CD':
-        l, logz, z1, z2 = cd_objective(E_data, E_samples)
+        l, logz, z1, z2 = cd_objective(E_data, log_q, E_samples)
     elif obj_fct=='CSS':
-        l, logz, z1, z2 = css_objective(E_data, E_samples, log_q, approx_grad)
+        l, logz, z1, z2 = css_objective(E_data, E_samples, log_q, datasize, approx_grad)
     else:
         raise ValueError("Incorrect objective function. Not CD nor CSS.")
 
     return l, logz, z1, z2
 
-def cd_objective(E_data, E_samples):
+def cd_objective(E_data, logq, E_samples):
     """
     An objective whose gradient is equal to the CD gradient.
     """
@@ -27,7 +27,7 @@ def cd_objective(E_data, E_samples):
     return z1 - z2, T.log(z2), z1, z2
 
 
-def css_objective(E_data, E_samples, logq, approx_grad=True):
+def css_objective(E_data, E_samples, logq, datasize, approx_grad=True):
     """
     CSS objective.
     -log_q:         log[q(q_sample)] Sx1
@@ -39,7 +39,7 @@ def css_objective(E_data, E_samples, logq, approx_grad=True):
         logq = zero_grad(logq)
 
     # Expand the energy for the Q samples
-    e_q = E_samples - logq - T.log(T.cast(E_samples.shape[0], theano.config.floatX)) #shape: (nsamples,1)
+    e_q = E_samples - logq - T.log(T.cast(E_samples.shape[0],theano.config.floatX)) #shape: (nsamples,1)
     e_x = E_data #shape: (batch,1)
 
     # Concatenate energies
@@ -54,17 +54,21 @@ def css_objective(E_data, E_samples, logq, approx_grad=True):
     z_1 = T.log(T.sum(T.exp(e_p[:e_x.shape[0]]), axis=0)) + m
     z_2 = T.log(T.sum(T.exp(e_p[e_x.shape[0]:]), axis=0)) + m
     """
-    logZ = logsumexp(e_p.T)
-    #Why should it be Ntrain/Nbatch x z1?
-    return z_1 - logZ[0,0], logZ[0,0], z_1, z_2
+    logZ = T.squeeze(logsumexp(e_p.T))
+    return datasize*z_1 - logZ, logZ, z_1, z_2
 
-def variance_estimator(logZ,E_samples,logq):
+def variance_estimator(E_data,E_samples,logq,logZ,datasize):
     """
     Empirical variance estimator.
+    -E_data:        Energy of the true data Nbatchx1
+    -E_samples:     E(X_samples) Energy of the samples Nsamplesx1
+    -logq:         log[q(xs)] Nsamplesx1
     -logZ:          log[Z_est]
-    -E_samples:     E(X_samples) Energy of the samples nsamplesx1
-    -logq:         log[q(xs)] nsamplesx1
     """
-    sqr_diff = T.sqr(T.exp(E_samples-logq)-T.exp(logZ)) #shape: (nsamples,1)
+    N = T.cast(E_data.shape[0] + E_samples.shape[0],theano.config.floatX)
+    en = E_data + T.log(T.cast(datasize/E_data.shape[0],theano.config.floatX))
+    es = E_samples - logq - T.log(T.cast(E_samples.shape[0],theano.config.floatX))
+    e = T.concatenate((e_x, e_q),axis=0)
+    sqr_diff = T.sqr(T.exp(e)+N-T.exp(logZ))
 
-    return T.sum(sqr_diff)/T.cast(E_samples.shape[0]-1, theano.config.floatX)
+    return T.sum(sqr_diff)/(N-1)
