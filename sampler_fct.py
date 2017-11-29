@@ -92,7 +92,7 @@ def uniform(X, num_samples, srng):
     -X: batch x D
     """
     # Sampling from uniform
-    q = 0.5*T.ones((num_samples,X.shape[-1]),dtype=theano.config.floatX) #shape: (num_samples,D)
+    q = T.cast(0.5*T.ones((num_samples,X.shape[-1])),theano.config.floatX) #shape: (num_samples,D)
     q_sample = binary_sample(q.shape, q, srng=srng) #shape: (num_samples,D)
 
     # Calculate log[q(xs)]

@@ -127,12 +127,12 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         print("\nstarting training...")
         shape = (num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1,len(fractions))
         train_accuracy  = np.zeros(shape) # accuracy
-        train_loss      = np.zeros((shape[0],)) # loss
+        train_loss      = np.zeros((shape[0])) # loss
         train_energy    = np.zeros((shape[0],batch_size)) # Edata
         train_samples   = np.zeros((shape[0],batch_size*num_samples,2)) # Esamples,logq
         #train_samples   = np.zeros((shape[0],5,2))
-        train_sig       = np.zeros((shape[0],)) # sigma
-        train_z       = np.zeros((shape[0],)) # logz
+        train_sig       = np.zeros((shape[0])) # sigma
+        train_z       = np.zeros((shape[0])) # logz
         test_accuracy   = np.zeros(shape) # accuracy
         test_loss       = np.zeros((shape[0],4)) # l,l100,l500,l1000
         test_energy     = np.zeros((shape[0],batch_size)) # Edata
