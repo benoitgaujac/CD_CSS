@@ -96,8 +96,8 @@ def uniform(X, num_samples, srng):
     q_sample = binary_sample(q.shape, q, srng=srng) #shape: (num_samples,D)
 
     # Calculate log[q(xs)]
-    log_q = T.log(T.prod(q,axis=-1,keepdims=True,dtype=theano.config.floatX))
-    #log_q = -T.log(2)*T.cast(X.shape[-1],theano.config.floatX)*T.ones((num_samples,1),dtype=theano.config.floatX) #shape: (num_samples,1)
+    #log_q = T.log(T.prod(q,axis=-1,keepdims=True,dtype=theano.config.floatX))
+    log_q = -T.log(2)*T.cast(X.shape[-1],theano.config.floatX)*T.ones((num_samples,1),dtype=theano.config.floatX) #shape: (num_samples,1)
 
     return q_sample, log_q, dict()
 
