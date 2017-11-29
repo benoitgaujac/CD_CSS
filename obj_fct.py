@@ -54,8 +54,8 @@ def css_objective(E_data, E_samples, logq, datasize, approx_grad=True):
     z_1 = T.log(T.sum(T.exp(e_p[:e_x.shape[0]]), axis=0)) + m
     z_2 = T.log(T.sum(T.exp(e_p[e_x.shape[0]:]), axis=0)) + m
     """
-    logZ = logsumexp(e_p.T)
-    return z_1 - logZ[0,0], logZ[0,0], z_1, z_2
+    logZ = T.squeeze(logsumexp(e_p.T))
+    return z_1 - logZ, logZ, z_1, z_2
 
 def variance_estimator(E_data,E_samples,logq,logZ,datasize):
     """
