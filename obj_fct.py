@@ -68,7 +68,7 @@ def variance_estimator(E_data,E_samples,logq,logZ,datasize):
     N = T.cast(E_data.shape[0] + E_samples.shape[0],theano.config.floatX)
     en = E_data + T.log(T.cast(datasize/E_data.shape[0],theano.config.floatX))
     es = E_samples - logq - T.log(T.cast(E_samples.shape[0],theano.config.floatX))
-    e = T.concatenate((e_x, e_q),axis=0)
+    e = T.concatenate((en, es),axis=0)
     sqr_diff = T.sqr(T.exp(e)+N-T.exp(logZ))
 
     return T.sum(sqr_diff)/(N-1)

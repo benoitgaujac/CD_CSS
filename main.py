@@ -113,12 +113,12 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         X = T.matrix()
         # Build Model
         print("\ncompiling " + energy_type + " with " + sampling_method + " " + str(num_samples) + "samples for " + obj_fct + " objective...")
-        trainloss_f, testloss_f, eval_f, l_out, params = build_model(X, obj_fct=obj_fct,
+        trainloss_f, testloss_f, eval_f, params = build_model(X, obj_fct=obj_fct,
                                                                         alpha=LR,
                                                                         datasize = dataset.data["train"][0].shape[0],
                                                                         sampling_method=sampling_method,
                                                                         p_flip = p_flip,
-                                                                        num_samples=BATCH_SIZE*num_samples,
+                                                                        num_samples=batch_size*num_samples,
                                                                         num_steps_MC=1,
                                                                         num_steps_reconstruct=RECONSTRUCT_STEPS,
                                                                         energy_type=energy_type,
@@ -128,28 +128,26 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         shape = (num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1,len(fractions))
         train_accuracy  = np.zeros(shape) # accuracy
         train_loss      = np.zeros((shape[0],)) # loss
-        train_energy    = np.zeros((shape[0],BATCH_SIZE*num_samples)) # Edata
-        train_samples   = np.zeros((shape[0],BATCH_SIZE*num_samples,2)) # Esamples,logq
+        train_energy    = np.zeros((shape[0],batch_size)) # Edata
+        train_samples   = np.zeros((shape[0],batch_size*num_samples,2)) # Esamples,logq
         #train_samples   = np.zeros((shape[0],5,2))
         train_sig       = np.zeros((shape[0],)) # sigma
         train_z       = np.zeros((shape[0],)) # logz
         test_accuracy   = np.zeros(shape) # accuracy
-        test_loss       = np.zeros(shape[0],4) # l,l100,l500,l1000
-        test_energy     = np.zeros((shape[0],BATCH_SIZE*num_samples)) # Edata
-        test_samples    = np.zeros((shape[0],BATCH_SIZE*num_samples,2)) # Esamples,logq
+        test_loss       = np.zeros((shape[0],4)) # l,l100,l500,l1000
+        test_energy     = np.zeros((shape[0],batch_size)) # Edata
+        test_samples    = np.zeros((shape[0],batch_size*num_samples,2)) # Esamples,logq
         #test_samples    = np.zeros((shape[0],5,2))
         test_sig        = np.zeros((shape[0],4)) # sigma,sigma100,sigma500,sigma1000
         test_z          = np.zeros((shape[0],2)) # logz,logz1000
-        eval_samples    = np.zeros((shape[0],1000*BATCH_SIZE*num_samples,2)) # Esamples,logq
+        eval_samples    = np.zeros((shape[0],1000*batch_size*num_samples,2)) # Esamples,logq
         time_ite        = np.zeros(shape[0])
         norm_params     = np.zeros((shape[0],len(params)))
         i, s = 0, time.time() #counter for iteration, time
-        best_acc, best_loss = 0.0, -100.0
+        best_acc = 0.0
         for epoch in range(num_epochs):
             for x, y in dataset.iter("train", batch_size):
                 Edata,Esamples,Logq,Loss,logZ,Sig = trainloss_f(x,prob_init*exp(i*log(decay_rate)))
-                if Loss>best_loss:
-                    best_loss = Loss
                 if i%LOG_FREQ==0:
                     # Compute params params norm
                     norm = [np.sum(W.get_value()**2)/float(W.get_value().size) for W in params]
@@ -177,8 +175,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                         n += 1
                         if n==1:
                             break
-                    test_l = test_l/float(n)
-                    loglikelihood = loglikelihood/float(n)
+                    loss = loss/float(n)
+                    sigma = sigma/float(n)
                     test_a = test_a/float(n)
                     if test_a[-1]>best_acc:
                         best_acc = test_a[-1]
@@ -220,7 +218,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     # log info
                     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
                     print("[{:.3f}s]iteration {}".format(ti, i+1))
-                    print("train loss: {:.3e}, test loss: {:.3f}".format(float(train_l),float(test_l)))
+                    print("train loss: {:.3e}, test loss: {:.3f}".format(float(Loss),float(loss[0])))
                     print("train acc: {:.3f}%, test acc: {:.3f}%\n".format(100.0*train_a[-1],100.0*test_a[-1]))
                     s = time.time()
                 i += 1
@@ -301,7 +299,6 @@ if __name__ == "__main__":
     for k in ("train", "valid", "test"):
         dataset.data[k] = ((0.5 < dataset.data[k][0][:-1]).astype(theano.config.floatX),dataset.data[k][1][:-1])
     dataset.data["train"] = (dataset.data["train"][0][:options.num_data],dataset.data["train"][1][:options.num_data])
-    pdb.set_trace()
 
     """
 
