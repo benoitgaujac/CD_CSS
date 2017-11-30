@@ -214,6 +214,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     print("[{:.3f}s]iteration {}".format(ti, i+1))
                     print("train loss: {:.3e}, test loss: {:.3f}".format(float(Loss),float(loss[0])))
                     print("train acc: {:.3f}%, test acc: {:.3f}%\n".format(100.0*train_a[-1],100.0*test_a[-1]))
+                    print("train sig: {:.3f}%, test sig: {:.3f}%\n".format(float(Sig),float(sigma[0])))
                     s = time.time()
                 i += 1
         # Reconstructing images after training ends
