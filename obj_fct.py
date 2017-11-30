@@ -73,13 +73,13 @@ def css_objective(E_data, E_samples, logq, datasize, approx_grad=True):
 
     # Expand the energy for the Q samples
     e_q = E_samples - logq - T.log(T.cast(E_samples.shape[0],theano.config.floatX)) #shape: (nsamples,1)
-    e_x = E_data + T.log(datasize/T.cast(E_data.shape[0],theano.config.floatX))
+    e_x = E_data + T.log(datasize) - T.log(T.cast(E_data.shape[0],theano.config.floatX)))
 
     # Concatenate energies
     e_p = T.concatenate((e_x, e_q), axis=0)
 
     # Calculate the objective
-    z_1 = T.mean(e_x)
+    z_1 = T.mean(e_data)
     logZ = T.squeeze(logsumexp(e_p.T))
 
     # Compute variance variance estimator
