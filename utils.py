@@ -16,7 +16,7 @@ eps=1e-6
 ######################################## Functions ########################################
 def logsumexp(X):
     """Expects an NxD tensor"""
-    m = T.max(X, axis=1, keepdims=True)
+    m = zero_grad(T.max(X, axis=1, keepdims=True))
     return m + T.log(T.sum(T.exp(X-m), axis=1, keepdims=True))
 
 ######################################## Energy ########################################
