@@ -52,9 +52,9 @@ def imp_objective(E_data, logq, E_samples, approx_grad=True):
     m = zero_grad(T.max(e_q, axis=0))
     e_q = e_q - m
     sqr_diff = T.sqr(N*T.exp(e_q)-T.exp(logZ-m))
-    logsig = T.log(T.sum(sqr_diff)) + 2*m -0.5*T.log(N-T.cast(1.0,theano.config.floatX))
+    logsig = T.log(T.sum(sqr_diff)) + 2*m - 0.5*T.log(N-T.cast(1.0,theano.config.floatX))
 
-    return z_1 - logZ, logZ, logsig
+    return z_1 - logZ, logZ, logsig[0]
 
 
 def css_objective(E_data, E_samples, logq, datasize, approx_grad=True):
@@ -86,10 +86,9 @@ def css_objective(E_data, E_samples, logq, datasize, approx_grad=True):
     m = zero_grad(T.max(e_p, axis=0))
     e_p = e_p - m
     sqr_diff = T.sqr(N*T.exp(e_p)-T.exp(logZ-m))
-    logsig = T.log(T.sum(sqr_diff)) + 2*m -0.5*T.log(N-T.cast(1.0,theano.config.floatX))
+    logsig = T.log(T.sum(sqr_diff)) + 2*m - 0.5*T.log(N-T.cast(1.0,theano.config.floatX))
 
-
-    return z_1 - logZ, logZ, logsig
+    return z_1 - logZ, logZ, logsig[0]
 
 def variance_estimator(E_data,E_samples,logq,logZ,datasize):
     """

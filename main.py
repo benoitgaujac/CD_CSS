@@ -148,7 +148,6 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         for epoch in range(num_epochs):
             for x, y in dataset.iter("train", batch_size):
                 Edata,Esamples,Logq,Loss,logZ,Sig = trainloss_f(x,prob_init*exp(i*log(decay_rate)))
-                pdb.set_trace()
                 if i%LOG_FREQ==0:
                     # Compute params params norm
                     norm = [np.sum(W.get_value()**2)/float(W.get_value().size) for W in params]
@@ -214,8 +213,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
                     print("[{:.3f}s]iteration {}".format(ti, i+1))
                     print("train loss: {:.3e}, test loss: {:.3f}".format(float(Loss),float(loss[0])))
-                    print("train acc: {:.3f}%, test acc: {:.3f}%\n".format(100.0*train_a[-1],100.0*test_a[-1]))
-                    print("train sig: {:.3f}%, test sig: {:.3f}%\n".format(float(Sig),float(sigma[0])))
+                    print("train acc: {:.3f}%, test acc: {:.3f}%".format(100.0*train_a[-1],100.0*test_a[-1]))
+                    print("train sig: {:.3f}, test sig: {:.3f}\n".format(float(Sig),float(sigma[0])))
                     s = time.time()
                 i += 1
         # Reconstructing images after training ends
