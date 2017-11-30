@@ -18,7 +18,7 @@ def objectives(E_data,E_samples,log_q,obj_fct,datasize,approx_grad=True):
     else:
         raise ValueError("Incorrect objective function.")
 
-    return l, logz, z1, z2
+    return l, logz, sig
 
 def cd_objective(E_data, logq, E_samples):
     """
