@@ -74,7 +74,7 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, p_flip,
     loss1000, logZ1000, _, _ = objectives(E_data,E_samples1000,logq1000,obj_fct,datasize,approx_grad=True)
     sig1000 = variance_estimator(E_data,E_samples1000,logq1000,logZ1000,datasize)
 
-    # Evaluation (you lazy)
+    # Evaluation
     recon_01, acc_01 = reconstruct_images(X, num_steps=num_steps_reconstruct,params=params,energy=energy,srng=srng,fraction=0.1,D=784)
     recon_05, acc_05 = reconstruct_images(X, num_steps=num_steps_reconstruct,params=params,energy=energy,srng=srng,fraction=0.5,D=784)
     recon_07, acc_07 = reconstruct_images(X, num_steps=num_steps_reconstruct,params=params,energy=energy,srng=srng,fraction=0.7,D=784)
