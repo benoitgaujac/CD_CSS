@@ -79,7 +79,7 @@ def css_objective(E_data, E_samples, logq, datasize, approx_grad=True):
     e_p = T.concatenate((e_x, e_q), axis=0)
 
     # Calculate the objective
-    z_1 = T.mean(e_data)
+    z_1 = T.mean(E_data)
     logZ = T.squeeze(logsumexp(e_p.T))
 
     # Compute variance variance estimator
