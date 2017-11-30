@@ -148,6 +148,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         for epoch in range(num_epochs):
             for x, y in dataset.iter("train", batch_size):
                 Edata,Esamples,Logq,Loss,logZ,Sig = trainloss_f(x,prob_init*exp(i*log(decay_rate)))
+                pdb.set_trace()
                 if i%LOG_FREQ==0:
                     # Compute params params norm
                     norm = [np.sum(W.get_value()**2)/float(W.get_value().size) for W in params]
