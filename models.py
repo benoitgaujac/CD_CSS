@@ -48,8 +48,8 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, p_flip,
     E_samples =energy(samples)
 
     # Build loss function, variance estimator, regularization & updates dictionary
-    loss, logZ, _, _ = objectives(E_data,E_samples,logq,obj_fct,datasize,approx_grad=True)
-    sig = variance_estimator(E_data,E_samples,logq,logZ,datasize)
+    loss, logZ, sig = objectives(E_data,E_samples,logq,obj_fct,datasize,approx_grad=True)
+    #sig = variance_estimator(E_data,E_samples,logq,logZ,datasize)
     if regularization and energy_type!='boltzman':
         all_layers = lasagne.layers.get_all_layers(l_out)
         layers={}
@@ -63,16 +63,16 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, p_flip,
     # Logilike & variance evaluation with 100,500,1000N samples
     samples100, logq100, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 100*num_samples, srng)
     E_samples100 = energy(samples100)
-    loss100, logZ100, _, _ = objectives(E_data,E_samples100,logq100,obj_fct,datasize,approx_grad=True)
-    sig100 = variance_estimator(E_data,E_samples100,logq100,logZ100,datasize)
+    loss100, logZ100, sig100 = objectives(E_data,E_samples100,logq100,obj_fct,datasize,approx_grad=True)
+    #sig100 = variance_estimator(E_data,E_samples100,logq100,logZ100,datasize)
     samples500, logq500, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 500*num_samples, srng)
     E_samples500 = energy(samples500)
-    loss500, logZ500, _, _ = objectives(E_data,E_samples500,logq500,obj_fct,datasize,approx_grad=True)
-    sig500 = variance_estimator(E_data,E_samples500,logq500,logZ500,datasize)
+    loss500, logZ500, sig500 = objectives(E_data,E_samples500,logq500,obj_fct,datasize,approx_grad=True)
+    #sig500 = variance_estimator(E_data,E_samples500,logq500,logZ500,datasize)
     samples1000, logq1000, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 1000*num_samples, srng)
     E_samples1000 = energy(samples1000)
-    loss1000, logZ1000, _, _ = objectives(E_data,E_samples1000,logq1000,obj_fct,datasize,approx_grad=True)
-    sig1000 = variance_estimator(E_data,E_samples1000,logq1000,logZ1000,datasize)
+    loss1000, logZ1000, sig1000 = objectives(E_data,E_samples1000,logq1000,obj_fct,datasize,approx_grad=True)
+    #sig1000 = variance_estimator(E_data,E_samples1000,logq1000,logZ1000,datasize)
 
     # Evaluation
     recon_01, acc_01 = reconstruct_images(X, num_steps=num_steps_reconstruct,params=params,energy=energy,srng=srng,fraction=0.1,D=784)

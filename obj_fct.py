@@ -10,11 +10,11 @@ eps=1e-6
 
 def objectives(E_data,E_samples,log_q,obj_fct,datasize,approx_grad=True):
     if obj_fct=='CD':
-        l, logz, z1, z2 = cd_objective(E_data, log_q, E_samples)
+        l, logz, sig = cd_objective(E_data, log_q, E_samples)
     elif obj_fct=='IMP':
-        l, logz, z1, z2 = imp_objective(E_data, E_samples, log_q, approx_grad)
+        l, logz, sig = imp_objective(E_data, E_samples, log_q, approx_grad)
     elif obj_fct=='CSS':
-        l, logz, z1, z2 = css_objective(E_data, E_samples, log_q, datasize, approx_grad)
+        l, logz, sig = css_objective(E_data, E_samples, log_q, datasize, approx_grad)
     else:
         raise ValueError("Incorrect objective function.")
 
@@ -26,7 +26,7 @@ def cd_objective(E_data, logq, E_samples):
     """
     z1 = T.mean(E_data)
     z2 = T.mean(E_samples)
-    return z1 - z2, T.log(z2), z1, z2
+    return z1 - z2, 0.0, 0.0
 
 def imp_objective(E_data, logq, E_samples, approx_grad=True):
     """
@@ -39,14 +39,20 @@ def imp_objective(E_data, logq, E_samples, approx_grad=True):
     if approx_grad:
         logq = zero_grad(logq)
 
+    N = T.cast(E_samples.shape[0],theano.config.floatX)
+
     # Expand the energy for the Q samples
-    e_q = E_samples - logq - T.log(T.cast(E_samples.shape[0],theano.config.floatX)) #shape: (nsamples,1)
+    e_q = E_samples - logq - T.log(N) #shape: (nsamples,1)
 
     # Calculate the objective
     z_1 = T.mean(E_data)
-    z_2 = T.mean(e_q)
     logZ = T.squeeze(logsumexp(e_q.T))
-    return z_1 - logZ, logZ, z_1, z_2
+
+    # Compute variance variance estimator
+    sqr_diff = T.sqr(T.exp(e_q)+N-T.exp(logZ))
+    sig = T.sum(sqr_diff)/(N-T.cast(1.0,theano.config.floatX))
+
+    return z_1 - logZ, logZ, sig
 
 
 def css_objective(E_data, E_samples, logq, datasize, approx_grad=True):
@@ -61,6 +67,8 @@ def css_objective(E_data, E_samples, logq, datasize, approx_grad=True):
     if approx_grad:
         logq = zero_grad(logq)
 
+    N = T.cast(E_data.shape[0] + E_samples.shape[0],theano.config.floatX)
+
     # Expand the energy for the Q samples
     e_q = E_samples - logq - T.log(T.cast(E_samples.shape[0],theano.config.floatX)) #shape: (nsamples,1)
     e_x = E_data + T.log(datasize/T.cast(E_data.shape[0],theano.config.floatX))
@@ -70,9 +78,13 @@ def css_objective(E_data, E_samples, logq, datasize, approx_grad=True):
 
     # Calculate the objective
     z_1 = T.mean(e_x)
-    z_2 = T.mean(e_q)
     logZ = T.squeeze(logsumexp(e_p.T))
-    return z_1 - logZ, logZ, z_1, z_2
+
+    # Compute variance variance estimator
+    sqr_diff = T.sqr(T.exp(e_p)+N-T.exp(logZ))
+    sig = T.sum(sqr_diff)/(N-T.cast(1.0,theano.config.floatX))
+
+    return z_1 - logZ, logZ, sig
 
 def variance_estimator(E_data,E_samples,logq,logZ,datasize):
     """

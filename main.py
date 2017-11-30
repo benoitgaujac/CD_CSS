@@ -24,7 +24,7 @@ from energy_fct import net_energy, botlmzan_energy
 from utils import build_net
 
 #objectives = ['CSS','CD',]
-objectives = ['IMP',]
+objectives = ['CSS','IMP',]
 #ene = ['FC_net','CONV_net','boltzman']
 ene = ['CONV_net','boltzman']
 #samp = ['taylor_uniform','taylor_softmax','uniform']
