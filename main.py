@@ -28,7 +28,7 @@ objectives = ['CSS','IMP',]
 #ene = ['FC_net','CONV_net','boltzman']
 ene = ['CONV_net','boltzman']
 #samp = ['taylor_uniform','taylor_softmax','uniform']
-samp = ['uniform',]
+samp = ['stupid_q',]
 fractions = [0.1,0.5,0.7]
 
 #NUM_SAMPLES = [1,5,10] # Nb of sampling steps
@@ -107,8 +107,9 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         # Flipping prob for stupidq
         p_flip = T.scalar(dtype=theano.config.floatX)
         nm_steps_tot = NUM_EPOCH*dataset.data['train'][0].shape[0]//batch_size
-        prob_init = 0.4
-        decay_rate = exp((1/float(nm_steps_tot))*log(0.05/prob_init))
+        prob_init = 0.1
+        #decay_rate = exp((1/float(nm_steps_tot))*log(0.05/prob_init))
+        decay_rate = 1.0
         # Input tensor
         X = T.matrix()
         # Build Model
@@ -129,15 +130,15 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         train_accuracy  = np.zeros(shape) # accuracy
         train_loss      = np.zeros((shape[0])) # loss
         train_energy    = np.zeros((shape[0],batch_size,1)) # Edata
-        #train_samples   = np.zeros((shape[0],batch_size*num_samples,2)) # Esamples,logq
-        train_samples   = np.zeros((shape[0],1,2))
+        train_samples   = np.zeros((shape[0],batch_size*num_samples,2)) # Esamples,logq
+        #train_samples   = np.zeros((shape[0],1,2))
         train_sig       = np.zeros((shape[0])) # sigma
         train_z       = np.zeros((shape[0])) # logz
         test_accuracy   = np.zeros(shape) # accuracy
         test_loss       = np.zeros((shape[0],4)) # l,l100,l500,l1000
         test_energy     = np.zeros((shape[0],batch_size,1)) # Edata
-        #test_samples    = np.zeros((shape[0],batch_size*num_samples,2)) # Esamples,logq
-        test_samples    = np.zeros((shape[0],1,2))
+        test_samples    = np.zeros((shape[0],batch_size*num_samples,2)) # Esamples,logq
+        #test_samples    = np.zeros((shape[0],1,2))
         test_sig        = np.zeros((shape[0],4)) # sigma,sigma100,sigma500,sigma1000
         test_z          = np.zeros((shape[0],2)) # logz,logz1000
         eval_samples    = np.zeros((shape[0],1000*batch_size*num_samples,2)) # Esamples,logq

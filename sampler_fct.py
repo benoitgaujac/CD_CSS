@@ -31,9 +31,7 @@ def sampler(x, energy, E_data, num_steps, params, p_flip, sampling_method, num_s
     elif sampling_method=="uniform":
         samples, logq, updates = uniform(x, num_samples, srng)
     elif sampling_method=="stupid_q":
-        pass
-        #todo
-        #samples, logq, updates = stupidq(x,p_flip,srng)
+        samples, logq, updates = stupidq(x,num_samples,p_flip,srng)
     else:
         raise ValueError("Incorrect sampling method. Not gibbs nor naive_taylor.")
 
@@ -86,6 +84,28 @@ def build_taylor_q(X, E_data, uniform):
     means = T.nnet.sigmoid(T.grad(T.sum(E_data), X)) #shape: (batch,D)
     return means, pvals
 
+def stupidq(X,num_samples,p_flip,srng):
+    N = X.shape[0]
+    # Samling training point from batch
+    pvals = T.ones((1,N), dtype=theano.config.floatX)/T.cast(N,theano.config.floatX) #shape: (1,batch)
+    pi = T.argmax(srng.multinomial(pvals=T.repeat(pvals, num_samples, axis=0),
+                                        dtype=theano.config.floatX), axis=1) #shape: (num_samples,)
+    x = T.repeat(X, num_samples, axis=0)[pi] #shape: (num_samples,D)
+    xflipped = 1.0 - x
+    switching = binary_sample(size=x.shape, p=p_flip, srng=srng)
+    q_sample = T.switch(switching, x, xflipped)
+
+    #log[q(n)]
+    means = T.exp(-T.nnet.binary_crossentropy(p_flip*T.ones_like(X),1-X)) #shape: (batch,D)
+    means = T.repeat(means.dimshuffle(["x", 0, 1]),num_samples,axis=0) #shape: (num_samples, batch, D)
+    q_sample_ext = T.repeat(q_sample.dimshuffle([0, "x", 1]),N,axis=1)  #shape: (num_samples, batch, D)
+    log_qx = -T.sum(T.nnet.binary_crossentropy(means,q_sample_ext),axis=-1,keepdims=False)  #shape: (num_samples, batch)
+    #log[q(n)]
+    log_qn = T.log(pvals) #shape: (1,batch)
+    log_q = logsumexp(log_qx + log_qn)  #shape: (num_samples,1)
+
+    return q_sample, log_q, dict()
+
 def uniform(X, num_samples, srng):
     """
     Sample from uniform q.
@@ -130,15 +150,6 @@ def gibbs_sample(X, energy, num_steps, num_samples, params, srng):
         logq = - T.sum(T.nnet.binary_crossentropy(q, X[shuffled]), axis=1,keepdims=True)
 
     return q_samples, logq, updates
-
-def stupidq(X,p_flip,srng):
-    size = X.shape
-    Xflipped = 1.0 - X
-    binomial = binary_sample(size=size, p=p_flip, srng=srng)
-    q_sample = T.switch(binomial, X, Xflipped)
-    log_q = - T.sum(T.nnet.binary_crossentropy(p_flip*T.ones_like(X), q_sample), axis=1,keepdims=True)
-
-    return q_sample, log_q, dict()
 
 def binary_sample(size, p=0.5, dtype=theano.config.floatX, srng=None):
     """
