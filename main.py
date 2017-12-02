@@ -28,7 +28,7 @@ objectives = ['CSS','IMP',]
 #ene = ['FC_net','CONV_net','boltzman']
 ene = ['CONV_net','boltzman']
 #samp = ['taylor_uniform','taylor_softmax','uniform']
-samp = ['stupid_q',]
+samp = ['uniform',]
 fractions = [0.1,0.5,0.7]
 
 #NUM_SAMPLES = [1,5,10] # Nb of sampling steps
@@ -118,6 +118,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                                                                         alpha=LR,
                                                                         datasize = T.cast(dataset.data["train"][0].shape[0],theano.config.floatX),
                                                                         sampling_method=sampling_method,
+                                                                        alt_sampling='stupid_q',
                                                                         p_flip = p_flip,
                                                                         num_samples=batch_size*num_samples,
                                                                         num_steps_MC=1,
@@ -135,12 +136,12 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         train_sig       = np.zeros((shape[0])) # sigma
         train_z       = np.zeros((shape[0])) # logz
         test_accuracy   = np.zeros(shape) # accuracy
-        test_loss       = np.zeros((shape[0],4)) # l,l100,l500,l1000
+        test_loss       = np.zeros((shape[0],5)) # l,l100,l500,l1000
         test_energy     = np.zeros((shape[0],batch_size,1)) # Edata
-        test_samples    = np.zeros((shape[0],batch_size*num_samples,2)) # Esamples,logq
+        test_samples    = np.zeros((shape[0],batch_size*num_samples,3)) # Esamples,logq, alternative Esamples
         #test_samples    = np.zeros((shape[0],1,2))
         test_sig        = np.zeros((shape[0],4)) # sigma,sigma100,sigma500,sigma1000
-        test_z          = np.zeros((shape[0],2)) # logz,logz1000
+        test_z          = np.zeros((shape[0],3)) # logz,logz1000,alternative logz
         eval_samples    = np.zeros((shape[0],1000*batch_size*num_samples,2)) # Esamples,logq
         time_ite        = np.zeros(shape[0])
         norm_params     = np.zeros((shape[0],len(params)))
@@ -157,21 +158,18 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     train_a = np.array([train_a1,train_a5,train_a7])
                     # Test
                     n = 0
-                    loss = np.zeros((4))
-                    sigma = np.zeros((4))
+                    loss = np.zeros((5))
                     test_a = np.zeros((len(fractions)))
                     for x_test, y_test in dataset.iter("test", batch_size):
-                        edata,esamples,logq,l,logz,sig,l100,sig100,l500,sig500,esamples1000,logq1000,l1000,logz1000,sig1000 = testloss_f(
-                                                                                                                x_test,prob_init*exp(i*log(decay_rate)))
-                        loss += np.array([l,l100,l500,l1000])
-                        sigma += np.array([sig,sig100,sig500,sig1000])
+                        edata,esamples,logq,l,logz,sig,l100,sig100,l500,sig500,esamples1000,logq1000,l1000,logz1000,sig1000,alte_samples,altloss, altlogz = testloss_f(
+                                                                                                                                                            x_test,prob_init*exp(i*log(decay_rate)))
+                        loss += np.array([l,l100,l500,l1000,altloss])
                         acc1,acc5,acc7,_,_,_ = eval_f(x_test)
                         test_a += np.array([acc1,acc5,acc7])
                         n += 1
-                        if n==1:
+                        if n==2:
                             break
                     loss = loss/float(n)
-                    sigma = sigma/float(n)
                     test_a = test_a/float(n)
                     if test_a[-1]>best_acc:
                         best_acc = test_a[-1]
@@ -187,9 +185,9 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     test_accuracy[(i)//LOG_FREQ] = test_a
                     test_loss[(i)//LOG_FREQ] = loss
                     test_energy[(i)//LOG_FREQ] = edata
-                    test_samples[(i)//LOG_FREQ] = np.concatenate((esamples,logq), axis=-1)
-                    test_sig[(i)//LOG_FREQ] = sigma
-                    test_z[(i)//LOG_FREQ] = np.asarray([logz,logz1000])
+                    test_samples[(i)//LOG_FREQ] = np.concatenate((esamples,logq,alte_samples), axis=-1)
+                    test_sig[(i)//LOG_FREQ] = np.asarray([sig,sig100,sig500,sig1000])
+                    test_z[(i)//LOG_FREQ] = np.asarray([logz,logz1000,altlogz])
                     eval_samples[(i)//LOG_FREQ] = np.concatenate((esamples1000,logq1000), axis=-1)
                     ti = time.time() - s
                     time_ite[(i)//LOG_FREQ] = ti
@@ -215,7 +213,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     print("[{:.3f}s]iteration {}".format(ti, i+1))
                     print("train loss: {:.3e}, test loss: {:.3f}".format(float(Loss),float(loss[0])))
                     print("train acc: {:.3f}%, test acc: {:.3f}%".format(100.0*train_a[-1],100.0*test_a[-1]))
-                    print("train sig: {:.3f}, test sig: {:.3f}\n".format(float(Sig),float(sigma[0])))
+                    print("train sig: {:.3f}, test sig: {:.3f}\n".format(float(Sig),float(sig)))
                     s = time.time()
                 i += 1
         # Reconstructing images after training ends
@@ -289,7 +287,6 @@ if __name__ == "__main__":
     dataset.data["train"] = (dataset.data["train"][0][:options.num_data],dataset.data["train"][1][:options.num_data])
 
 
-    """
     main(dataset,batch_size=options.BATCH_SIZE,
                 num_epochs=options.NUM_EPOCH,
                 energy_type=options.energy,
@@ -314,3 +311,4 @@ if __name__ == "__main__":
                                     obj_fct=ob,
                                     mode=options.mode,
                                     directory=options.dir)
+    """
