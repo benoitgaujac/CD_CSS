@@ -287,6 +287,7 @@ if __name__ == "__main__":
     dataset.data["train"] = (dataset.data["train"][0][:options.num_data],dataset.data["train"][1][:options.num_data])
 
 
+    """
     main(dataset,batch_size=options.BATCH_SIZE,
                 num_epochs=options.NUM_EPOCH,
                 energy_type=options.energy,
@@ -311,4 +312,3 @@ if __name__ == "__main__":
                                     obj_fct=ob,
                                     mode=options.mode,
                                     directory=options.dir)
-    """
