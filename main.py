@@ -107,7 +107,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         # Flipping prob for stupidq
         p_flip = T.scalar(dtype=theano.config.floatX)
         nm_steps_tot = NUM_EPOCH*dataset.data['train'][0].shape[0]//batch_size
-        prob_init = 0.4
+        prob_init = 0.2
         #decay_rate = exp((1/float(nm_steps_tot))*log(0.05/prob_init))
         decay_rate = 1.0
         # Input tensor
