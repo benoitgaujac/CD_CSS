@@ -51,8 +51,10 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, alt_sampling,
 
     # Build loss function, variance estimator, regularization & updates dictionary
     if obj_fct=='CSShack':
-        loss, logZ, sig = objectives(E_data,E_samples,logq,'CSS',datasize,approx_grad=True)
-        hloss,_,_ = objectives(E_data,E_samples,logq,obj_fct,datasize,approx_grad=True)
+        hacked_obj = obj_fct
+        obj_fct = 'CSS'
+        loss, logZ, sig = objectives(E_data,E_samples,logq,obj_fct,datasize,approx_grad=True)
+        hloss,_,_ = objectives(E_data,E_samples,logq,hacked_obj,datasize,approx_grad=True)
         updates = upd.adam(-hloss, params, learning_rate=alpha)
     else:
         loss, logZ, sig = objectives(E_data,E_samples,logq,obj_fct,datasize,approx_grad=True)
