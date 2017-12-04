@@ -28,7 +28,7 @@ def cd_objective(E_data, logq, E_samples):
     z2 = T.mean(E_samples)
     return z1 - z2, 0.0, 0.0
 
-def imp_objective(E_data, logq, E_samples, approx_grad=True):
+def imp_objective(E_data, E_samples, logq, approx_grad=True):
     """
     Pseudo CD with importance sampling for Z.
     -log_q:         log[q(q_sample)] Sx1
@@ -89,19 +89,3 @@ def css_objective(E_data, E_samples, logq, datasize, approx_grad=True):
     logsig = T.log(T.sum(sqr_diff)) + 2*m - 0.5*T.log(N-T.cast(1.0,theano.config.floatX))
 
     return z_1 - logZ, logZ, logsig[0]
-
-def variance_estimator(E_data,E_samples,logq,logZ,datasize):
-    """
-    Empirical variance estimator.
-    -E_data:        Energy of the true data Nbatchx1
-    -E_samples:     E(X_samples) Energy of the samples Nsamplesx1
-    -logq:         log[q(xs)] Nsamplesx1
-    -logZ:          log[Z_est]
-    """
-    N = T.cast(E_data.shape[0] + E_samples.shape[0],theano.config.floatX)
-    en = E_data + T.log(datasize/T.cast(E_data.shape[0],theano.config.floatX))
-    es = E_samples - logq - T.log(T.cast(E_samples.shape[0],theano.config.floatX))
-    e = T.concatenate((en,es),axis=0)
-    sqr_diff = T.sqr(T.exp(e)+N-T.exp(logZ))
-
-    return T.sum(sqr_diff)/(N-T.cast(1.0,theano.config.floatX))

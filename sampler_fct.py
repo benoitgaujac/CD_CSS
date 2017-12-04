@@ -92,7 +92,7 @@ def stupidq(X,num_samples,p_flip,srng):
                                         dtype=theano.config.floatX), axis=1) #shape: (num_samples,)
     x = T.repeat(X, num_samples, axis=0)[pi] #shape: (num_samples,D)
     xflipped = 1.0 - x
-    switching = binary_sample(size=x.shape, p=p_flip, srng=srng)
+    switching = binary_sample(size=x.shape, p=1.0-p_flip, srng=srng)
     q_sample = T.switch(switching, x, xflipped)
 
     #log[q(n)]

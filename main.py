@@ -136,7 +136,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         train_sig       = np.zeros((shape[0])) # sigma
         train_z       = np.zeros((shape[0])) # logz
         test_accuracy   = np.zeros(shape) # accuracy
-        test_loss       = np.zeros((shape[0],5)) # l,l100,l500,l1000
+        test_loss       = np.zeros((shape[0],5)) # l,l100,l500,l1000, altloss
         test_energy     = np.zeros((shape[0],batch_size,1)) # Edata
         test_samples    = np.zeros((shape[0],batch_size*num_samples,3)) # Esamples,logq, alternative Esamples
         #test_samples    = np.zeros((shape[0],1,2))
