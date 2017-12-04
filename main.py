@@ -23,8 +23,8 @@ from models import build_model
 from energy_fct import net_energy, botlmzan_energy
 from utils import build_net
 
-#objectives = ['CSS','CD',]
-objectives = ['CSS','IMP',]
+#objectives = ['CSS','IMP',CSShack]
+objectives = ['CSShack',]
 #ene = ['FC_net','CONV_net','boltzman']
 ene = ['CONV_net','boltzman']
 #samp = ['taylor_uniform','taylor_softmax','uniform']
@@ -136,11 +136,11 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         train_sig       = np.zeros((shape[0])) # sigma
         train_z       = np.zeros((shape[0])) # logz
         test_accuracy   = np.zeros(shape) # accuracy
-        test_loss       = np.zeros((shape[0],5)) # l,l100,l500,l1000, altloss
+        test_loss       = np.zeros((shape[0],3)) # l,l1000, altloss
         test_energy     = np.zeros((shape[0],batch_size,1)) # Edata
         test_samples    = np.zeros((shape[0],batch_size*num_samples,3)) # Esamples,logq, alternative Esamples
         #test_samples    = np.zeros((shape[0],1,2))
-        test_sig        = np.zeros((shape[0],4)) # sigma,sigma100,sigma500,sigma1000
+        test_sig        = np.zeros((shape[0],2)) # sigma,sigma1000
         test_z          = np.zeros((shape[0],3)) # logz,logz1000,alternative logz
         eval_samples    = np.zeros((shape[0],1000*batch_size*num_samples,2)) # Esamples,logq
         time_ite        = np.zeros(shape[0])
@@ -158,12 +158,11 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     train_a = np.array([train_a1,train_a5,train_a7])
                     # Test
                     n = 0
-                    loss = np.zeros((5))
+                    loss = np.zeros((3))
                     test_a = np.zeros((len(fractions)))
                     for x_test, y_test in dataset.iter("test", batch_size):
-                        edata,esamples,logq,l,logz,sig,l100,sig100,l500,sig500,esamples1000,logq1000,l1000,logz1000,sig1000,alte_samples,altloss, altlogz = testloss_f(
-                                                                                                                                                            x_test,prob_init*exp(i*log(decay_rate)))
-                        loss += np.array([l,l100,l500,l1000,altloss])
+                        edata,esamples,logq,l,logz,sig,esamples1000,logq1000,l1000,logz1000,sig1000,alte_samples,altloss,altlogz = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
+                        loss += np.array([l,l1000,altloss])
                         acc1,acc5,acc7,_,_,_ = eval_f(x_test)
                         test_a += np.array([acc1,acc5,acc7])
                         n += 1
@@ -186,7 +185,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     test_loss[(i)//LOG_FREQ] = loss
                     test_energy[(i)//LOG_FREQ] = edata
                     test_samples[(i)//LOG_FREQ] = np.concatenate((esamples,logq,alte_samples), axis=-1)
-                    test_sig[(i)//LOG_FREQ] = np.asarray([sig,sig100,sig500,sig1000])
+                    test_sig[(i)//LOG_FREQ] = np.asarray([sig,sig1000])
                     test_z[(i)//LOG_FREQ] = np.asarray([logz,logz1000,altlogz])
                     eval_samples[(i)//LOG_FREQ] = np.concatenate((esamples1000,logq1000), axis=-1)
                     ti = time.time() - s

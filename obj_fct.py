@@ -15,6 +15,8 @@ def objectives(E_data,E_samples,log_q,obj_fct,datasize,approx_grad=True):
         l, logz, sig = imp_objective(E_data, E_samples, log_q, approx_grad)
     elif obj_fct=='CSS':
         l, logz, sig = css_objective(E_data, E_samples, log_q, datasize, approx_grad)
+    elif obj_fct=='CSShack':
+        l, logz, sig = css_hacked_objective(E_data, E_samples)
     else:
         raise ValueError("Incorrect objective function.")
 
@@ -89,3 +91,19 @@ def css_objective(E_data, E_samples, logq, datasize, approx_grad=True):
     logsig = T.log(T.sum(sqr_diff)) + 2*m - 0.5*T.log(N-T.cast(1.0,theano.config.floatX))
 
     return z_1 - logZ, logZ, logsig[0]
+
+def css_hacked_objective(E_data, E_samples):
+    """
+    Hacked CSS objective.
+    -E_data:        Energy of the true data Nx1
+    -E_samples:     Energy of the samples Sx1
+    """
+
+    # Concatenate energies
+    e_p = T.concatenate((E_samples, E_data), axis=0)
+
+    # Calculate the objective
+    z_1 = T.mean(E_data)
+    logZ = T.squeeze(logsumexp(e_p.T))
+
+    return z_1 - logZ, logZ, 0

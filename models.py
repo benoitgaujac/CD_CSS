@@ -50,8 +50,17 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, alt_sampling,
     E_samples =energy(samples)
 
     # Build loss function, variance estimator, regularization & updates dictionary
-    loss, logZ, sig = objectives(E_data,E_samples,logq,obj_fct,datasize,approx_grad=True)
-    #sig = variance_estimator(E_data,E_samples,logq,logZ,datasize)
+    if obj_fct=='CSShack':
+        loss, logZ, sig = objectives(E_data,E_samples,logq,'CSS',datasize,approx_grad=True)
+        hloss,_,_ = objectives(E_data,E_samples,logq,obj_fct,datasize,approx_grad=True)
+        updates = upd.adam(-hloss, params, learning_rate=alpha)
+    else:
+        loss, logZ, sig = objectives(E_data,E_samples,logq,obj_fct,datasize,approx_grad=True)
+        updates = upd.adam(-loss, params, learning_rate=alpha)
+    updates.update(updts) #we need to ad the update dictionary
+
+    """
+    Regularization
     if regularization and energy_type!='boltzman':
         all_layers = lasagne.layers.get_all_layers(l_out)
         layers={}
@@ -59,22 +68,14 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, alt_sampling,
             layers[layer]=coef_regu
         loss = loss - regularize_layer_params_weighted(layers,l2)
         #loss = loss coef_regu*regularize_layer_params(l_out,l2)
-    updates = upd.adam(-loss, params, learning_rate=alpha)
-    updates.update(updts) #we need to ad the update dictionary
+    """
 
     # Alternative sampling
     altsamples, altlogq, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, alt_sampling, num_samples, srng)
     altE_samples =energy(altsamples)
     altloss, altlogZ, _ = objectives(E_data,altE_samples,altlogq,obj_fct,datasize,approx_grad=True)
 
-
     # Logilike & variance evaluation with 100,500,1000N samples
-    samples100, logq100, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 100*num_samples, srng)
-    E_samples100 = energy(samples100)
-    loss100, logZ100, sig100 = objectives(E_data,E_samples100,logq100,obj_fct,datasize,approx_grad=True)
-    samples500, logq500, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 500*num_samples, srng)
-    E_samples500 = energy(samples500)
-    loss500, logZ500, sig500 = objectives(E_data,E_samples500,logq500,obj_fct,datasize,approx_grad=True)
     samples1000, logq1000, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 1000*num_samples, srng)
     E_samples1000 = energy(samples1000)
     loss1000, logZ1000, sig1000 = objectives(E_data,E_samples1000,logq1000,obj_fct,datasize,approx_grad=True)
@@ -88,12 +89,9 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, alt_sampling,
     trainloss_function = theano.function(inputs=[X,p_flip], outputs=(E_data,E_samples,logq,loss,logZ,sig), updates=updates,on_unused_input='ignore')
     testloss_function = theano.function(inputs=[X,p_flip],
                                         outputs=(E_data,E_samples,logq,loss,logZ,sig,
-                                                loss100,sig100,
-                                                loss500,sig500,
                                                 E_samples1000,logq1000,loss1000,logZ1000,sig1000,
                                                 altE_samples,altloss, altlogZ),
                                         on_unused_input='ignore')
-    #eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_03,acc_05,acc_07,recon_01,recon_03,recon_05,recon_07))
     eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_05,acc_07,recon_01,recon_05,recon_07))
 
 
