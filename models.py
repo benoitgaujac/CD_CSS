@@ -11,7 +11,7 @@ from functools import partial
 import utils as u
 from energy_fct import build_energy
 from sampler_fct import sampler
-from obj_fct import objectives, variance_estimator
+from obj_fct import objectives
 from eval_fct import reconstruct_images
 
 srng = RandomStreams(100)
