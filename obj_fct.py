@@ -106,4 +106,4 @@ def css_hacked_objective(E_data, E_samples):
     z_1 = T.mean(E_data)
     logZ = T.squeeze(logsumexp(e_p.T))
 
-    return z_1 - logZ, logZ, 0
+    return z_1 - logZ, logZ, logZ

@@ -23,8 +23,8 @@ from models import build_model
 from energy_fct import net_energy, botlmzan_energy
 from utils import build_net
 
-#objectives = ['CSS','IMP',CSShack]
-objectives = ['CSShack',]
+objectives = ['CSS','IMP',CSShack]
+#objectives = ['CSShack',]
 #ene = ['FC_net','CONV_net','boltzman']
 ene = ['CONV_net','boltzman']
 #samp = ['taylor_uniform','taylor_softmax','uniform']
@@ -284,7 +284,6 @@ if __name__ == "__main__":
     for k in ("train", "valid", "test"):
         dataset.data[k] = ((0.5 < dataset.data[k][0][:-1]).astype(theano.config.floatX),dataset.data[k][1][:-1])
     dataset.data["train"] = (dataset.data["train"][0][:options.num_data],dataset.data["train"][1][:options.num_data])
-
 
     """
     main(dataset,batch_size=options.BATCH_SIZE,
