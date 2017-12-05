@@ -141,12 +141,12 @@ def blobs_uniform(X, num_samples, srng):
     im_h = 28
     blobs_size = 7
     blobs_area = blobs_size*blobs_size
-    blobs_number = T.cast(X.shape[-1],theano.config.floatX)/T.cast(blobs_area,theano.config.floatX)
+    blobs_number = T.cast(im_h/blobs_size,dtype='int32')
 
     # Sampling from uniform
-    q_blobs = T.cast(0.5,theano.config.floatX)*T.ones((num_samples,blobs_number),dtype=theano.config.floatX) #shape: (num_samples,blobs_number)
-    q_sample_blobs = binary_sample(q.shape, q_blobs, srng=srng).reshape((-1,blobs_size,blobs_size)) #shape: (num_samples,blobs_number)
-    q_sample = T.repeat(T.repeat(q_sample_blobs,7,axis=2),7,axis=1).reshape((-1,X.shape[-1])) #shape: (num_samples,D)
+    q_blobs = T.cast(0.5,theano.config.floatX)*T.ones((num_samples,blobs_number*blobs_number),dtype=theano.config.floatX) #shape: (num_samples,blobs_number)
+    q_sample_blobs = binary_sample(q_blobs.shape, q_blobs, srng=srng).reshape((-1,blobs_number,blobs_number)) #shape: (num_samples,blobs_number)
+    q_sample = T.repeat(T.repeat(q_sample_blobs,blobs_size,axis=1),blobs_size,axis=2).reshape((-1,X.shape[-1])) #shape: (num_samples,D)
 
     # Calculate log[q(xs)] (wrong q but we do not use for new CSS)
     log_q = -T.log(2)*T.cast(blobs_size,theano.config.floatX)*T.ones((num_samples,1),dtype=theano.config.floatX) #shape: (num_samples,1)
