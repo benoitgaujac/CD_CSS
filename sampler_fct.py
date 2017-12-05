@@ -21,17 +21,17 @@ def sampler(x, energy, E_data, num_steps, params, p_flip, sampling_method, num_s
     -num_samples:       Number of samples for importance sampling/MC
     """
     if sampling_method=="gibbs":
-        pass
-        #todo
-        #samples, logq, updates = gibbs_sample(x, energy, num_steps, num_samples, params, srng)
+        samples, logq, updates = gibbs_sample(x,energy,num_steps,params,srng)
     elif sampling_method=="taylor_uniform":
-        samples, logq, updates = taylor_sample(x, E_data, num_samples, True, srng)
+        samples, logq, updates = taylor_sample(x,E_data,num_samples,True,srng)
     elif sampling_method=="taylor_softmax":
-        samples, logq, updates = taylor_sample(x, E_data, num_samples, False, srng)
+        samples, logq, updates = taylor_sample(x,E_data,num_samples,False,srng)
     elif sampling_method=="uniform":
-        samples, logq, updates = uniform(x, num_samples, srng)
+        samples, logq, updates = uniform(x,num_samples,srng)
     elif sampling_method=="stupid_q":
         samples, logq, updates = stupidq(x,num_samples,p_flip,srng)
+    elif sampling_method=="mixtures":
+        samples, logq, updates = mix_q(x,num_samples,srng)
     else:
         raise ValueError("Incorrect sampling method. Not gibbs nor naive_taylor.")
 
@@ -84,6 +84,17 @@ def build_taylor_q(X, E_data, uniform):
     means = T.nnet.sigmoid(T.grad(T.sum(E_data), X)) #shape: (batch,D)
     return means, pvals
 
+def mix_q(x,num_samples,srng):
+    samples_u, logq_u, _ = uniform(X, num_samples, srng)
+    samples_bu, logq_bu, _ = blobs_uniform(X, num_samples, srng)
+    samples_s1, logq_s1, _ = stupidq(X, num_samples, 0.1, srng)
+    samples_s2, logq_s2, _ = stupidq(X, num_samples, 0.4, srng)
+
+    q_sample = T.concatenate((samples_u,samples_bu,samples_s1,samples_s2))
+    log_q = T.concatenate((logq_u,logq_bu,logq_s1,logq_s2))
+
+    return q_sample, log_q, dict()
+
 def stupidq(X,num_samples,p_flip,srng):
     N = X.shape[0]
     # Samling training point from batch
@@ -120,36 +131,27 @@ def uniform(X, num_samples, srng):
 
     return q_sample, log_q, dict()
 
-def gibbs_sample(X, energy, num_steps, num_samples, params, srng):
+def blobs_uniform(X, num_samples, srng):
     """
-    Gibbs sampling.
+    Sample from blobs uniform q.
+    -X: batch x D
     """
-    def gibbs_step(i, x, *args):
-        "perform one step of gibbs sampling from the energy model for all N chains"
-        x_i = x[T.arange(x.shape[0]), i]
-        x_zero = T.set_subtensor(x_i, 0.0)
-        x_one = T.set_subtensor(x_i, 1.0)
-        merged = T.concatenate([x_one, x_zero], axis=0)
-        eng = energy(merged).flatten()
-        eng_one = eng[:x.shape[0]]
-        eng_zero = eng[x.shape[0]:]
-        q = T.nnet.sigmoid(eng_one - eng_zero)
-        samps = binary_sample(q.shape, q, srng=srng)
-        return T.set_subtensor(x_i, samps), q
+    #!!!! value hard coded !!!!
+    im_w = 28
+    im_h = 28
+    blobs_size = 7
+    blobs_area = blobs_size*blobs_size
+    blobs_number = T.cast(X.shape[-1],theano.config.floatX)/T.cast(blobs_area,theano.config.floatX)
 
-    for i in range(num_samples):
-        shuffle = srng.uniform(size=X.shape)
-        shuffled = T.argsort(shuffle, axis=1)
-        result, updates = theano.scan(fn=gibbs_step,
-                                sequences=shuffled.T,
-                                outputs_info=[X,None],
-                                non_sequences=params)
-        q_samples = result[0][-1]
-        q = result[1].T
-        q = q * (1.0 - 2*eps) + eps
-        logq = - T.sum(T.nnet.binary_crossentropy(q, X[shuffled]), axis=1,keepdims=True)
+    # Sampling from uniform
+    q_blobs = T.cast(0.5,theano.config.floatX)*T.ones((num_samples,blobs_number),dtype=theano.config.floatX) #shape: (num_samples,blobs_number)
+    q_sample_blobs = binary_sample(q.shape, q_blobs, srng=srng).reshape((-1,blobs_size,blobs_size)) #shape: (num_samples,blobs_number)
+    q_sample = T.repeat(T.repeat(q_sample_blobs,7,axis=2),7,axis=1).reshape((-1,X.shape[-1])) #shape: (num_samples,D)
 
-    return q_samples, logq, updates
+    # Calculate log[q(xs)] (wrong q but we do not use for new CSS)
+    log_q = -T.log(2)*T.cast(blobs_size,theano.config.floatX)*T.ones((num_samples,1),dtype=theano.config.floatX) #shape: (num_samples,1)
+
+    return q_sample, log_q, dict()
 
 def binary_sample(size, p=0.5, dtype=theano.config.floatX, srng=None):
     """
@@ -160,3 +162,32 @@ def binary_sample(size, p=0.5, dtype=theano.config.floatX, srng=None):
     if not isinstance(p, float):
         p = zero_grad(p)
     return T.cast(x < p, dtype)
+
+def gibbs_sample(X, energy, num_steps, params, srng):
+    """
+    Gibbs sampling
+    """
+    def gibbs_step(i, x, *args):
+        """perform one step of gibbs sampling """
+        x_i = x[T.arange(x.shape[0]), i]
+        x_zero = T.set_subtensor(x_i, 0.0)
+        x_one = T.set_subtensor(x_i, 1.0)
+        merged = T.concatenate([x_one, x_zero], axis=0)
+        eng = energy(merged).flatten()
+        eng_one = eng[:x.shape[0]]
+        eng_zero = eng[x.shape[0]:]
+        q = T.nnet.sigmoid(eng_one - eng_zero)
+        samps = binary_sample(q.shape, q, srng=srng)
+
+        return T.set_subtensor(x_i, samps)
+
+    for i in range(num_steps):
+        shuffle = srng.uniform(size=X.shape)
+        shuffled = T.argsort(shuffle, axis=1)
+        result, updates = theano.scan(fn=gibbs_step,
+                                      sequences=shuffled.T,
+                                      outputs_info=X,
+                                      non_sequences=params)
+    logq = T.zeros((result[-1].shape[0],1)) #we dont need that as we do CD
+
+    return result[-1], logq, updates

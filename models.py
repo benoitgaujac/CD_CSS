@@ -59,7 +59,7 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, alt_sampling,
     else:
         loss, logZ, sig = objectives(E_data,E_samples,logq,obj_fct,datasize,approx_grad=True)
         updates = upd.adam(-loss, params, learning_rate=alpha)
-    updates.update(updts) #we need to ad the update dictionary
+    updates.update(updts) #we need to add the update dictionary (for gibbs sampling)
 
     """
     Regularization

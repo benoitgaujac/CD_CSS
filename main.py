@@ -23,12 +23,12 @@ from models import build_model
 from energy_fct import net_energy, botlmzan_energy
 from utils import build_net
 
-objectives = ['CSS','IMP','CSShack']
-#objectives = ['CSShack',]
+#objectives = ['CSS','IMP','CSShack']
+objectives = ['CSSnew',]
 #ene = ['FC_net','CONV_net','boltzman']
 ene = ['CONV_net','boltzman']
 #samp = ['taylor_uniform','taylor_softmax','uniform']
-samp = ['uniform',]
+samp = ['mixtures',]
 fractions = [0.1,0.5,0.7]
 
 #NUM_SAMPLES = [1,5,10] # Nb of sampling steps
@@ -97,6 +97,12 @@ def create_subdirectory(DIR,SUBDIR,experiment=None):
 
 ######################################## Main ########################################
 def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='boltzman', archi=None, sampling_method='gibbs', num_samples=2, obj_fct="CD", mode="train",directory="results"):
+    # Sanity check gibbs/neww CSS
+    if sampling_method=='gibbs' and obj_fct!="CD":
+        raise ValueError("Gibbs only with CD")
+    if sampling_method=='mixtures' and obj_fct!="CSSnew":
+        raise ValueError("CSS new only with mixtures")
+
     # Create directories
     experiment = obj_fct + "_" +energy_type + "_" + sampling_method
     checkpoint_file, result_file = create_directory(directory,num_samples,experiment)
@@ -115,16 +121,16 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         # Build Model
         print("\ncompiling " + energy_type + " with " + sampling_method + " " + str(num_samples) + "samples for " + obj_fct + " objective...")
         trainloss_f, testloss_f, eval_f, params = build_model(X, obj_fct=obj_fct,
-                                                                        alpha=LR,
-                                                                        datasize = T.cast(dataset.data["train"][0].shape[0],theano.config.floatX),
-                                                                        sampling_method=sampling_method,
-                                                                        alt_sampling='stupid_q',
-                                                                        p_flip = p_flip,
-                                                                        num_samples=batch_size*num_samples,
-                                                                        num_steps_MC=1,
-                                                                        num_steps_reconstruct=RECONSTRUCT_STEPS,
-                                                                        energy_type=energy_type,
-                                                                        archi=archi)
+                                                                alpha=LR,
+                                                                datasize = T.cast(dataset.data["train"][0].shape[0],theano.config.floatX),
+                                                                sampling_method=sampling_method,
+                                                                alt_sampling='stupid_q',
+                                                                p_flip = p_flip,
+                                                                num_samples=batch_size*num_samples,
+                                                                num_steps_MC=1,
+                                                                num_steps_reconstruct=RECONSTRUCT_STEPS,
+                                                                energy_type=energy_type,
+                                                                archi=archi)
         # Training loop
         print("\nstarting training...")
         shape = (num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1,len(fractions))
@@ -285,7 +291,6 @@ if __name__ == "__main__":
         dataset.data[k] = ((0.5 < dataset.data[k][0][:-1]).astype(theano.config.floatX),dataset.data[k][1][:-1])
     dataset.data["train"] = (dataset.data["train"][0][:options.num_data],dataset.data["train"][1][:options.num_data])
 
-    """
     main(dataset,batch_size=options.BATCH_SIZE,
                 num_epochs=options.NUM_EPOCH,
                 energy_type=options.energy,
@@ -310,3 +315,4 @@ if __name__ == "__main__":
                                     obj_fct=ob,
                                     mode=options.mode,
                                     directory=options.dir)
+    """

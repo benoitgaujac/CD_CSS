@@ -10,25 +10,28 @@ eps=1e-6
 
 def objectives(E_data,E_samples,log_q,obj_fct,datasize,approx_grad=True):
     if obj_fct=='CD':
-        l, logz, sig = cd_objective(E_data, log_q, E_samples)
+        l, logz, sig = cd_objective(E_data, E_samples)
     elif obj_fct=='IMP':
         l, logz, sig = imp_objective(E_data, E_samples, log_q, approx_grad)
     elif obj_fct=='CSS':
         l, logz, sig = css_objective(E_data, E_samples, log_q, datasize, approx_grad)
     elif obj_fct=='CSShack':
         l, logz, sig = css_hacked_objective(E_data, E_samples)
+    elif obj_fct=='CSSnew':
+        l, logz, sig = css_new_objective(E_data, E_samples, datasize)
     else:
         raise ValueError("Incorrect objective function.")
 
     return l, logz, sig
 
-def cd_objective(E_data, logq, E_samples):
+def cd_objective(E_data, E_samples):
     """
     An objective whose gradient is equal to the CD gradient.
     """
     z1 = T.mean(E_data)
     z2 = T.mean(E_samples)
-    return z1 - z2, 0.0, 0.0
+
+    return z1 - z2, T.zeros_like(z1), T.zeros_like(z1)
 
 def imp_objective(E_data, E_samples, logq, approx_grad=True):
     """
@@ -107,3 +110,19 @@ def css_hacked_objective(E_data, E_samples):
     logZ = T.squeeze(logsumexp(e_p.T))
 
     return z_1 - logZ, logZ, logZ
+
+def css_new_objective(E_data, E_samples, datasize):
+    """
+    Hacked CSS objective.
+    -E_data:        Energy of the true data Nx1
+    -E_samples:     Energy of the samples Sx1
+    """
+
+    # Concatenate energies
+    e_p = T.concatenate((E_samples, E_data), axis=0)
+
+    # Calculate the objective
+    z_1 = T.mean(E_data)
+    logZ = T.squeeze(logsumexp(e_p.T))
+
+    return z_1 - logZ - T.log(datasize), logZ, logZ
