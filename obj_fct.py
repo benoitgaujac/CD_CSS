@@ -119,7 +119,8 @@ def css_new_objective(E_data, E_samples, datasize):
     """
 
     # Concatenate energies
-    e_p = T.concatenate((E_samples, E_data), axis=0)
+    e_n = E_data - T.log(T.cast(E_data.shape[0],theano.config.floatX))
+    e_p = T.concatenate((e_n, E_samples), axis=0)
 
     # Calculate the objective
     z_1 = T.mean(E_data)
