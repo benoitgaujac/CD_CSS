@@ -85,10 +85,10 @@ def build_taylor_q(X, E_data, uniform):
     return means, pvals
 
 def mix_q(x,num_samples,srng):
-    samples_u, logq_u, _ = uniform(X, num_samples, srng)
-    samples_bu, logq_bu, _ = blobs_uniform(X, num_samples, srng)
-    samples_s1, logq_s1, _ = stupidq(X, num_samples, 0.1, srng)
-    samples_s2, logq_s2, _ = stupidq(X, num_samples, 0.4, srng)
+    samples_u, logq_u, _ = uniform(x, num_samples, srng)
+    samples_bu, logq_bu, _ = blobs_uniform(x, num_samples, srng)
+    samples_s1, logq_s1, _ = stupidq(x, num_samples, 0.1, srng)
+    samples_s2, logq_s2, _ = stupidq(x, num_samples, 0.4, srng)
 
     q_sample = T.concatenate((samples_u,samples_bu,samples_s1,samples_s2))
     log_q = T.concatenate((logq_u,logq_bu,logq_s1,logq_s2))
