@@ -150,7 +150,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         #test_sig        = np.zeros((shape[0],2)) # sigma,sigma1000
         test_sig        = np.zeros((shape[0],1)) # sigma
         #test_z          = np.zeros((shape[0],3)) # logz,logz1000,alternative logz
-        test_z          = np.zeros((shape[0],3)) # logz,alternative logz
+        test_z          = np.zeros((shape[0],2)) # logz,alternative logz
         #eval_samples    = np.zeros((shape[0],1000*batch_size*num_samples,2)) # Esamples,logq
         time_ite        = np.zeros(shape[0])
         iteration       = np.zeros((shape[0])) # iteration
