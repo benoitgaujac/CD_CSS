@@ -168,7 +168,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     train_a = np.array([train_a1,train_a5,train_a7])
                     # Test
                     n = 0
-                    loss = np.zeros((3))
+                    #loss = np.zeros((3))
+                    loss = np.zeros((2))
                     test_a = np.zeros((len(fractions)))
                     for x_test, y_test in dataset.iter("test", batch_size):
                         #edata,esamples,logq,l,logz,sig,esamples1000,logq1000,l1000,logz1000,sig1000,alte_samples,altloss,altlogz = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
