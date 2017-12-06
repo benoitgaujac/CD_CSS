@@ -38,7 +38,7 @@ IM_SIZE = 28 # MNIST images size
 D = IM_SIZE*IM_SIZE # Dimension
 BATCH_SIZE = 32 # batch size
 NUM_EPOCH = 10
-LOG_FREQ = 16
+LOG_FREQ = 8
 NUM_RECON = 10
 IND_RECON = 2000
 LR = 0.00005
@@ -140,7 +140,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         train_samples   = np.zeros((shape[0],batch_size*num_samples,2)) # Esamples,logq
         #train_samples   = np.zeros((shape[0],1,2))
         train_sig       = np.zeros((shape[0])) # sigma
-        train_z       = np.zeros((shape[0])) # logz
+        train_z         = np.zeros((shape[0])) # logz
         test_accuracy   = np.zeros(shape) # accuracy
         test_loss       = np.zeros((shape[0],3)) # l,l1000, altloss
         test_energy     = np.zeros((shape[0],batch_size,1)) # Edata
@@ -150,6 +150,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         test_z          = np.zeros((shape[0],3)) # logz,logz1000,alternative logz
         eval_samples    = np.zeros((shape[0],1000*batch_size*num_samples,2)) # Esamples,logq
         time_ite        = np.zeros(shape[0])
+        iteration       = np.zeros((shape[0])) # iteration
         norm_params     = np.zeros((shape[0],len(params)))
         i, s = 0, time.time() #counter for iteration, time
         best_acc = 0.0
@@ -196,6 +197,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     eval_samples[(i)//LOG_FREQ] = np.concatenate((esamples1000,logq1000), axis=-1)
                     ti = time.time() - s
                     time_ite[(i)//LOG_FREQ] = ti
+                    iteration[(i)//LOG_FREQ] = i
                     norm_params[(i)//LOG_FREQ] = norm
                     # Save info
                     save_np(train_accuracy,'train_acc',result_file)
@@ -212,6 +214,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     save_params([test_z],result_file + '_test_z', date_time=False)
                     save_params([eval_samples],result_file + '_eval_samples', date_time=False)
                     save_np(time_ite,'time',result_file)
+                    save_np(iteration,'iteration',result_file)
                     save_np(norm_params,'norm_params',result_file)
                     # log info
                     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
