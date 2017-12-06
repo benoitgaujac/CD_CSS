@@ -136,7 +136,7 @@ def blobs_uniform(X, num_samples, srng):
     Sample from blobs uniform q.
     -X: batch x D
     """
-    #!!!! value hard coded !!!!
+    #!!!! hard coded values !!!!
     im_w = 28
     im_h = 28
     blobs_size = 7

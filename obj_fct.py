@@ -117,11 +117,13 @@ def css_new_objective(E_data, E_samples, datasize):
     -E_data:        Energy of the true data Nx1
     -E_samples:     Energy of the samples Sx1
     """
-
+    #!!!! hard coded values !!!!
+    n_mixt = 4
+    m_mixt = E_data.shape[0]/n_mixt * T.ones((n_mixt,1))
     # Concatenate energies
     e_n = E_data - T.log(T.cast(E_data.shape[0],theano.config.floatX))
-    e_p = T.concatenate((e_n, E_samples), axis=0)
-
+    e_q = E_samples - T.log(T.repeat(m_mixt,int(E_data.shape[0]/n_mixt),axis=0)) - T.log(n_mixt) # if we have E_data.shape[0]/n_mixt samples for each mixtures
+    e_p = T.concatenate((e_n, e_q), axis=0)
     # Calculate the objective
     z_1 = T.mean(E_data)
     logZ = T.squeeze(logsumexp(e_p.T))
