@@ -77,10 +77,12 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, alt_sampling,
     altE_samples =energy(altsamples)
     altloss, altlogZ, _ = objectives(E_data,altE_samples,altlogq,obj_fct,datasize,approx_grad=True)
 
+    """
     # Logilike & variance evaluation with 100,500,1000N samples
     samples1000, logq1000, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 1000*num_samples, srng)
     E_samples1000 = energy(samples1000)
     loss1000, logZ1000, sig1000 = objectives(E_data,E_samples1000,logq1000,obj_fct,datasize,approx_grad=True)
+    """
 
     # Evaluation
     recon_01, acc_01 = reconstruct_images(X, num_steps=num_steps_reconstruct,params=params,energy=energy,srng=srng,fraction=0.1,D=784)
@@ -91,7 +93,6 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, alt_sampling,
     trainloss_function = theano.function(inputs=[X,p_flip], outputs=(E_data,E_samples,logq,loss,logZ,sig), updates=updates,on_unused_input='ignore')
     testloss_function = theano.function(inputs=[X,p_flip],
                                         outputs=(E_data,E_samples,logq,loss,logZ,sig,
-                                                E_samples1000,logq1000,loss1000,logZ1000,sig1000,
                                                 altE_samples,altloss, altlogZ),
                                         on_unused_input='ignore')
     eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_05,acc_07,recon_01,recon_05,recon_07))

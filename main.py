@@ -142,13 +142,16 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         train_sig       = np.zeros((shape[0])) # sigma
         train_z         = np.zeros((shape[0])) # logz
         test_accuracy   = np.zeros(shape) # accuracy
-        test_loss       = np.zeros((shape[0],3)) # l,l1000, altloss
+        #test_loss       = np.zeros((shape[0],3)) # l,l1000, altloss
+        test_loss       = np.zeros((shape[0],2)) # l,altloss
         test_energy     = np.zeros((shape[0],batch_size,1)) # Edata
         test_samples    = np.zeros((shape[0],batch_size*num_samples,3)) # Esamples,logq, alternative Esamples
         #test_samples    = np.zeros((shape[0],1,2))
-        test_sig        = np.zeros((shape[0],2)) # sigma,sigma1000
-        test_z          = np.zeros((shape[0],3)) # logz,logz1000,alternative logz
-        eval_samples    = np.zeros((shape[0],1000*batch_size*num_samples,2)) # Esamples,logq
+        #test_sig        = np.zeros((shape[0],2)) # sigma,sigma1000
+        test_sig        = np.zeros((shape[0],1)) # sigma
+        #test_z          = np.zeros((shape[0],3)) # logz,logz1000,alternative logz
+        test_z          = np.zeros((shape[0],3)) # logz,alternative logz
+        #eval_samples    = np.zeros((shape[0],1000*batch_size*num_samples,2)) # Esamples,logq
         time_ite        = np.zeros(shape[0])
         iteration       = np.zeros((shape[0])) # iteration
         norm_params     = np.zeros((shape[0],len(params)))
@@ -168,8 +171,10 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     loss = np.zeros((3))
                     test_a = np.zeros((len(fractions)))
                     for x_test, y_test in dataset.iter("test", batch_size):
-                        edata,esamples,logq,l,logz,sig,esamples1000,logq1000,l1000,logz1000,sig1000,alte_samples,altloss,altlogz = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
-                        loss += np.array([l,l1000,altloss])
+                        #edata,esamples,logq,l,logz,sig,esamples1000,logq1000,l1000,logz1000,sig1000,alte_samples,altloss,altlogz = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
+                        #loss += np.array([l,l1000,altloss])
+                        edata,esamples,logq,l,logz,sig,alte_samples,altloss,altlogz = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
+                        loss += np.array([l,altloss])
                         acc1,acc5,acc7,_,_,_ = eval_f(x_test)
                         test_a += np.array([acc1,acc5,acc7])
                         n += 1
@@ -192,9 +197,11 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     test_loss[(i)//LOG_FREQ] = loss
                     test_energy[(i)//LOG_FREQ] = edata
                     test_samples[(i)//LOG_FREQ] = np.concatenate((esamples,logq,alte_samples), axis=-1)
-                    test_sig[(i)//LOG_FREQ] = np.asarray([sig,sig1000])
-                    test_z[(i)//LOG_FREQ] = np.asarray([logz,logz1000,altlogz])
-                    eval_samples[(i)//LOG_FREQ] = np.concatenate((esamples1000,logq1000), axis=-1)
+                    #test_sig[(i)//LOG_FREQ] = np.asarray([sig,sig1000])
+                    test_sig[(i)//LOG_FREQ] = np.asarray([sig])
+                    #test_z[(i)//LOG_FREQ] = np.asarray([logz,logz1000,altlogz])
+                    test_z[(i)//LOG_FREQ] = np.asarray([logz,altlogz])
+                    #eval_samples[(i)//LOG_FREQ] = np.concatenate((esamples1000,logq1000), axis=-1)
                     ti = time.time() - s
                     time_ite[(i)//LOG_FREQ] = ti
                     iteration[(i)//LOG_FREQ] = i
@@ -212,7 +219,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     save_params([test_samples],result_file + '_test_samples', date_time=False)
                     save_params([test_sig],result_file + '_test_sig', date_time=False)
                     save_params([test_z],result_file + '_test_z', date_time=False)
-                    save_params([eval_samples],result_file + '_eval_samples', date_time=False)
+                    #save_params([eval_samples],result_file + '_eval_samples', date_time=False)
                     save_np(time_ite,'time',result_file)
                     save_np(iteration,'iteration',result_file)
                     save_np(norm_params,'norm_params',result_file)
