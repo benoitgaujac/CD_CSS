@@ -41,7 +41,7 @@ NUM_EPOCH = 10
 LOG_FREQ = 128
 NUM_RECON = 10
 IND_RECON = 2000
-LR = 0.00005
+LR = 0.0001
 
 ######################################## Models architectures ########################################
 FC_net = {"hidden":3,"nhidden_0":D,"nhidden_1":1024,"nhidden_2":2048,"nhidden_3":2048,"noutput":1}
