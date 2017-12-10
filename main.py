@@ -23,12 +23,12 @@ from models import build_model
 from energy_fct import net_energy, botlmzan_energy
 from utils import build_net
 
-objectives = ['CSS','IMP',]
-#objectives = ['CSSnew',]
+#objectives = ['CSS','IMP',]
+objectives = ['CSSnew',]
 #ene = ['FC_net','CONV_net','boltzman']
 ene = ['CONV_net','boltzman']
 #samp = ['taylor_uniform','taylor_softmax','uniform']
-samp = ['uniform',]
+samp = ['uniform','mixtures']
 fractions = [0.1,0.5,0.7]
 
 #NUM_SAMPLES = [1,5,10] # Nb of sampling steps
