@@ -44,7 +44,7 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, annealed_logq,
     E_data = energy(X)
 
     # Sampling from Q
-    samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, num_samples, srng)
+    samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, sampling_method, num_samples, srng)
     #samples, logq, updts = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 1, srng)
     E_samples =energy(samples)
 
@@ -67,7 +67,7 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, annealed_logq,
         #loss = loss coef_regu*regularize_layer_params(l_out,l2)
 
     # Alternative sampling
-    altsamples, altlogq, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, alt_sampling, num_samples, srng)
+    altsamples, altlogq, _ = sampler(X, energy, E_data, num_steps_MC, params, alt_sampling, num_samples, srng)
     altE_samples =energy(altsamples)
     altloss, altlogZ, _ = objectives(E_data,altE_samples,altlogq,obj_fct,datasize,approx_grad=True)
 

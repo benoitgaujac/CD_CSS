@@ -24,9 +24,7 @@ from energy_fct import net_energy, botlmzan_energy
 from utils import build_net
 
 objectives = ['CSSann','CSSnewM','CSS','CSSnew','IMP']
-#ene = ['FC_net','CONV_net','boltzman']
 ene = ['CONV_net','boltzman']
-#samp = ['taylor_uniform','taylor_softmax','uniform']
 samp = ['uniform',]
 fractions = [0.1,0.5,0.7]
 
@@ -122,14 +120,13 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         trainloss_f, testloss_f, eval_f, params = build_model(X, obj_fct=obj_fct,
                                                                 alpha=LR,
                                                                 datasize = T.cast(dataset.data["train"][0].shape[0],theano.config.floatX),
-                                                                alt_sampling='stupid_q',
+                                                                sampling_method = sampling_method,
                                                                 annealed_logq = logq,
                                                                 num_samples=batch_size*num_samples,
                                                                 num_steps_MC=1,
                                                                 num_steps_reconstruct=RECONSTRUCT_STEPS,
                                                                 energy_type=energy_type,
                                                                 archi=archi)
-        # Training loop
         print("\nstarting training...")
         shape = (num_epochs*dataset.data['train'][0].shape[0]//(LOG_FREQ*batch_size)+1,len(fractions))
         train_accuracy  = np.zeros(shape) # accuracy

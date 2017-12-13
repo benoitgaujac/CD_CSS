@@ -9,7 +9,7 @@ from utils import logsumexp
 
 eps=1e-6
 
-def sampler(x, energy, E_data, num_steps, params, p_flip, sampling_method, num_samples, srng):
+def sampler(x, energy, E_data, num_steps, params, sampling_method, num_samples, srng):
     """
     Sampler for MC approximation of the energy. Return samples.
     -x:                 Input data
@@ -28,8 +28,6 @@ def sampler(x, energy, E_data, num_steps, params, p_flip, sampling_method, num_s
         samples, logq, updates = taylor_sample(x,E_data,num_samples,False,srng)
     elif sampling_method=="uniform":
         samples, logq, updates = uniform(x,num_samples,srng)
-    elif sampling_method=="stupid_q":
-        samples, logq, updates = stupidq(x,num_samples,p_flip,srng)
     elif sampling_method=="mixtures":
         samples, logq, updates = mix_q(x,num_samples,srng)
     else:
