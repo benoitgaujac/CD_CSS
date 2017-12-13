@@ -78,7 +78,7 @@ def css_objective(E_data, E_samples, logq, datasize, approx_grad=True):
 
     # Expand the energy for the Q samples
     e_q = E_samples - logq - T.log(T.cast(E_samples.shape[0],theano.config.floatX)) #shape: (nsamples,1)
-    e_x = E_data + T.log(datasize) - T.log(T.cast(E_data.shape[0],theano.config.floatX))
+    e_x = E_data + T.log(datasize) - T.log(T.cast(E_data.shape[0],theano.config.floatX)) #shape: (nbatch,1)
 
     # Concatenate energies
     e_p = T.concatenate((e_x, e_q), axis=0)
@@ -119,11 +119,12 @@ def css_new_objective(E_data, E_samples, datasize):
     """
     #!!!! hard coded values !!!!
     n_mixt = 4 #number of mixtures
-    m_mixt = E_data.shape[0]/n_mixt * T.ones((n_mixt,1)) #weights of mixtures
     s_mixt = T.cast(E_data.shape[0]/n_mixt,dtype='int32') #samples per mixtures
+    m_mixt = s_mixt * T.ones((n_mixt,1)) #weights of mixtures (n_mixt,1)
+
     # Concatenate energies
     e_n = E_data - T.log(T.cast(E_data.shape[0],theano.config.floatX))
-    e_q = E_samples - T.log(T.repeat(m_mixt,s_mixt,axis=0)) - T.log(n_mixt) # if we have E_data.shape[0]/n_mixt samples for each mixtures
+    e_q = E_samples - T.log(T.repeat(m_mixt,s_mixt,axis=0)) # if we have E_data.shape[0]/n_mixt samples for each mixtures
     e_p = T.concatenate((e_n, e_q), axis=0)
     # Calculate the objective
     z_1 = T.mean(E_data)

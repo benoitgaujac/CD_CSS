@@ -23,16 +23,13 @@ from models import build_model
 from energy_fct import net_energy, botlmzan_energy
 from utils import build_net
 
-objectives = ['CSS','IMP',]
-#objectives = ['CSSnew',]
+objectives = ['CSSann','CSSnewM','CSS','CSSnew','IMP']
 #ene = ['FC_net','CONV_net','boltzman']
-#ene = ['CONV_net','boltzman']
-ene = ['boltzman',]
+ene = ['CONV_net','boltzman']
 #samp = ['taylor_uniform','taylor_softmax','uniform']
 samp = ['uniform',]
 fractions = [0.1,0.5,0.7]
 
-#NUM_SAMPLES = [1,5,10] # Nb of sampling steps
 NUM_SAMPLES = [1,] # Nb of sampling steps
 RECONSTRUCT_STEPS = 10 # Nb of Gibbs steps for reconstruction
 IM_SIZE = 28 # MNIST images size
@@ -43,6 +40,7 @@ LOG_FREQ = 128
 NUM_RECON = 10
 IND_RECON = 2000
 LR = 0.0001
+ANNEALED_THRESHOLD = 1.0
 
 ######################################## Models architectures ########################################
 FC_net = {"hidden":3,"nhidden_0":D,"nhidden_1":1024,"nhidden_2":2048,"nhidden_3":2048,"noutput":1}
@@ -101,8 +99,9 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
     # Sanity check gibbs/neww CSS
     if sampling_method=='gibbs' and obj_fct!="CD":
         raise ValueError("Gibbs only with CD")
-    if sampling_method=='mixtures' and obj_fct!="CSSnew":
-        raise ValueError("CSS new only with mixtures")
+    if obj_fct=='CSSnewM':
+        sampling_method='mixtures'
+        obj_fct='CSSnew'
 
     # Create directories
     experiment = obj_fct + "_" +energy_type + "_" + sampling_method
@@ -111,12 +110,11 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
     if mode=="train":
         # Image to visualize reconstruction
         true_x = dataset.data["test"][0][IND_RECON:IND_RECON+NUM_RECON]
-        # Flipping prob for stupidq
-        p_flip = T.scalar(dtype=theano.config.floatX)
+        # Annealing logq
+        logq = T.scalar(dtype=theano.config.floatX) #logq = -n*log(2) for uniform
+        init_n = 1.0
         nm_steps_tot = NUM_EPOCH*dataset.data['train'][0].shape[0]//batch_size
-        prob_init = 0.2
-        #decay_rate = exp((1/float(nm_steps_tot))*log(0.05/prob_init))
-        decay_rate = 1.0
+        annealing_rate = nm_steps_tot//D # we bound the volume of the distribution
         # Input tensor
         X = T.matrix()
         # Build Model
@@ -124,9 +122,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         trainloss_f, testloss_f, eval_f, params = build_model(X, obj_fct=obj_fct,
                                                                 alpha=LR,
                                                                 datasize = T.cast(dataset.data["train"][0].shape[0],theano.config.floatX),
-                                                                sampling_method=sampling_method,
                                                                 alt_sampling='stupid_q',
-                                                                p_flip = p_flip,
+                                                                annealed_logq = logq,
                                                                 num_samples=batch_size*num_samples,
                                                                 num_steps_MC=1,
                                                                 num_steps_reconstruct=RECONSTRUCT_STEPS,
@@ -138,29 +135,29 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         train_accuracy  = np.zeros(shape) # accuracy
         train_loss      = np.zeros((shape[0])) # loss
         train_energy    = np.zeros((shape[0],batch_size,1)) # Edata
-        train_samples   = np.zeros((shape[0],batch_size*num_samples,2)) # Esamples,logq
-        #train_samples   = np.zeros((shape[0],1,2))
+        train_samples   = np.zeros((shape[0],batch_size*num_samples,1)) # Esamples
         train_sig       = np.zeros((shape[0])) # sigma
         train_z         = np.zeros((shape[0])) # logz
         test_accuracy   = np.zeros(shape) # accuracy
         #test_loss       = np.zeros((shape[0],3)) # l,l1000, altloss
-        test_loss       = np.zeros((shape[0],2)) # l,altloss
+        test_loss       = np.zeros((shape[0],1)) # l
         test_energy     = np.zeros((shape[0],batch_size,1)) # Edata
-        test_samples    = np.zeros((shape[0],batch_size*num_samples,3)) # Esamples,logq, alternative Esamples
-        #test_samples    = np.zeros((shape[0],1,2))
+        #test_samples    = np.zeros((shape[0],batch_size*num_samples,2)) # Esamples,alternative Esamples
+        test_samples    = np.zeros((shape[0],batch_size*num_samples,1)) # Esamples
         #test_sig        = np.zeros((shape[0],2)) # sigma,sigma1000
         test_sig        = np.zeros((shape[0],1)) # sigma
         #test_z          = np.zeros((shape[0],3)) # logz,logz1000,alternative logz
-        test_z          = np.zeros((shape[0],2)) # logz,alternative logz
-        #eval_samples    = np.zeros((shape[0],1000*batch_size*num_samples,2)) # Esamples,logq
+        test_z          = np.zeros((shape[0],1)) # logz
+        #eval_samples    = np.zeros((shape[0],1000*batch_size*num_samples,1)) #1000*Esamples
         time_ite        = np.zeros(shape[0])
         iteration       = np.zeros((shape[0])) # iteration
         norm_params     = np.zeros((shape[0],len(params)))
         i, s = 0, time.time() #counter for iteration, time
         best_acc = 0.0
+        n = init_n
         for epoch in range(num_epochs):
             for x, y in dataset.iter("train", batch_size):
-                Edata,Esamples,Logq,Loss,logZ,Sig = trainloss_f(x,prob_init*exp(i*log(decay_rate)))
+                Edata,Esamples,Loss,logZ,Sig = trainloss_f(x,-n*log(2.0))
                 if i%LOG_FREQ==0:
                     # Compute params params norm
                     norm = [np.sum(W.get_value()**2)/float(W.get_value().size) for W in params]
@@ -168,22 +165,22 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     train_a1,train_a5,train_a7,_,_,_ = eval_f(x)
                     train_a = np.array([train_a1,train_a5,train_a7])
                     # Test
-                    n = 0
+                    batch_count = 0
                     #loss = np.zeros((3))
-                    loss = np.zeros((2))
+                    loss = np.zeros((1))
                     test_a = np.zeros((len(fractions)))
                     for x_test, y_test in dataset.iter("test", batch_size):
                         #edata,esamples,logq,l,logz,sig,esamples1000,logq1000,l1000,logz1000,sig1000,alte_samples,altloss,altlogz = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
                         #loss += np.array([l,l1000,altloss])
-                        edata,esamples,logq,l,logz,sig,alte_samples,altloss,altlogz = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
-                        loss += np.array([l,altloss])
+                        edata,esamples,l,logz,sig = testloss_f(x_test,-n*log(2.0))
+                        loss += np.array([l])
                         acc1,acc5,acc7,_,_,_ = eval_f(x_test)
                         test_a += np.array([acc1,acc5,acc7])
-                        n += 1
-                        if n==2:
+                        batch_count += 1
+                        if batch_count==2:
                             break
-                    loss = loss/float(n)
-                    test_a = test_a/float(n)
+                    loss = loss/float(batch_count)
+                    test_a = test_a/float(batch_count)
                     if test_a[-1]>best_acc:
                         best_acc = test_a[-1]
                         _,_,_,recon1,recon5,recon7 = eval_f(true_x)
@@ -192,17 +189,19 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     train_accuracy[(i)//LOG_FREQ] = train_a
                     train_loss[(i)//LOG_FREQ] = Loss
                     train_energy[(i)//LOG_FREQ] = Edata
-                    train_samples[(i)//LOG_FREQ] = np.concatenate((Esamples,Logq), axis=-1)
+                    #train_samples[(i)//LOG_FREQ] = np.concatenate((Esamples,Logq), axis=-1)
+                    train_samples[(i)//LOG_FREQ] = Esamples
                     train_sig[(i)//LOG_FREQ] = Sig
                     train_z[(i)//LOG_FREQ] = logZ
                     test_accuracy[(i)//LOG_FREQ] = test_a
                     test_loss[(i)//LOG_FREQ] = loss
                     test_energy[(i)//LOG_FREQ] = edata
-                    test_samples[(i)//LOG_FREQ] = np.concatenate((esamples,logq,alte_samples), axis=-1)
+                    #test_samples[(i)//LOG_FREQ] = np.concatenate((esamples,logq,alte_samples), axis=-1)
+                    test_samples[(i)//LOG_FREQ] = esamples
                     #test_sig[(i)//LOG_FREQ] = np.asarray([sig,sig1000])
                     test_sig[(i)//LOG_FREQ] = np.asarray([sig])
                     #test_z[(i)//LOG_FREQ] = np.asarray([logz,logz1000,altlogz])
-                    test_z[(i)//LOG_FREQ] = np.asarray([logz,altlogz])
+                    test_z[(i)//LOG_FREQ] = np.asarray([logz])
                     #eval_samples[(i)//LOG_FREQ] = np.concatenate((esamples1000,logq1000), axis=-1)
                     ti = time.time() - s
                     time_ite[(i)//LOG_FREQ] = ti
@@ -230,9 +229,14 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     print("[{:.3f}s]iteration {}".format(ti, i+1))
                     print("train loss: {:.3e}, test loss: {:.3f}".format(float(Loss),float(loss[0])))
                     print("train acc: {:.3f}%, test acc: {:.3f}%".format(100.0*train_a[-1],100.0*test_a[-1]))
-                    print("train sig: {:.3f}, test sig: {:.3f}\n".format(float(Sig),float(sig)))
+                    print("train sig: {:.3f}, test sig: {:.3f}".format(float(Sig),float(sig)))
+                    print("annealed logq: -{}xlog(2)\n".format(int(n)))
                     s = time.time()
                 i += 1
+                #updating annealed logq
+                if obj_fct=='CSSann' and np.average(Esamples)+n*log(2.0)<ANNEALED_THRESHOLD:
+                    n += annealing_rate
+
         # Reconstructing images after training ends
         _,_,_,recon1,recon5,recon7 = eval_f(true_x)
         save_params([recon1,recon5,recon7], result_file + '_final_recons', date_time=False)

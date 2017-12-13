@@ -19,19 +19,18 @@ np.random.seed(42)
 coef_regu = 0.0
 regularization=False
 
-def build_model(X, obj_fct, alpha, datasize, sampling_method, alt_sampling,
-                                                                    p_flip,
-                                                                    num_samples,
-                                                                    num_steps_MC=1,
-                                                                    num_steps_reconstruct=10,
-                                                                    energy_type="boltzman",
-                                                                    archi=None):
+def build_model(X, obj_fct, alpha, datasize, sampling_method, annealed_logq,
+                                                                num_samples,
+                                                                num_steps_MC=1,
+                                                                num_steps_reconstruct=15,
+                                                                energy_type="boltzman",
+                                                                archi=None):
     """
     Build model and return train and test function, as well as output
     -X:                 Input
     -obj_fct:           Name of the training objective
     -sampling_method:   Sampling method used
-    -alt_sampling:      Alternative (independant) sampling method
+    -annealed_logq:     Annealed logq for CSS with annealed logq
     -num_samples:       Number of samples for importance sampling/MC
     -alpha:             Learning rate
     -num_steps_MC:      Number of steps for MCMC with gibbs sampling
@@ -50,15 +49,11 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, alt_sampling,
     E_samples =energy(samples)
 
     # Build loss function, variance estimator, regularization & updates dictionary
-    if obj_fct=='CSShack':
-        hacked_obj = obj_fct
+    if obj_fct=='CSSann':
         obj_fct = 'CSS'
-        loss, logZ, sig = objectives(E_data,E_samples,logq,obj_fct,datasize,approx_grad=True)
-        hloss,_,_ = objectives(E_data,E_samples,logq,hacked_obj,datasize,approx_grad=True)
-        updates = upd.adam(-hloss, params, learning_rate=alpha)
-    else:
-        loss, logZ, sig = objectives(E_data,E_samples,logq,obj_fct,datasize,approx_grad=True)
-        updates = upd.adam(-loss, params, learning_rate=alpha)
+        logq = annealed_logq
+    loss, logZ, sig = objectives(E_data,E_samples,logq,obj_fct,datasize,approx_grad=True)
+    updates = upd.adam(-loss, params, learning_rate=alpha)
     updates.update(updts) #we need to add the update dictionary (for gibbs sampling)
 
     """
@@ -70,14 +65,12 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, alt_sampling,
             layers[layer]=coef_regu
         loss = loss - regularize_layer_params_weighted(layers,l2)
         #loss = loss coef_regu*regularize_layer_params(l_out,l2)
-    """
 
     # Alternative sampling
     altsamples, altlogq, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, alt_sampling, num_samples, srng)
     altE_samples =energy(altsamples)
     altloss, altlogZ, _ = objectives(E_data,altE_samples,altlogq,obj_fct,datasize,approx_grad=True)
 
-    """
     # Logilike & variance evaluation with 100,500,1000N samples
     samples1000, logq1000, _ = sampler(X, energy, E_data, num_steps_MC, params, p_flip, sampling_method, 1000*num_samples, srng)
     E_samples1000 = energy(samples1000)
@@ -90,10 +83,9 @@ def build_model(X, obj_fct, alpha, datasize, sampling_method, alt_sampling,
     recon_07, acc_07 = reconstruct_images(X, num_steps=num_steps_reconstruct,params=params,energy=energy,srng=srng,fraction=0.7,D=784)
 
     # Build theano learning function
-    trainloss_function = theano.function(inputs=[X,p_flip], outputs=(E_data,E_samples,logq,loss,logZ,sig), updates=updates,on_unused_input='ignore')
-    testloss_function = theano.function(inputs=[X,p_flip],
-                                        outputs=(E_data,E_samples,logq,loss,logZ,sig,
-                                                altE_samples,altloss, altlogZ),
+    trainloss_function = theano.function(inputs=[X,annealed_logq], outputs=(E_data,E_samples,loss,logZ,sig), updates=updates,on_unused_input='ignore')
+    testloss_function = theano.function(inputs=[X,annealed_logq],
+                                        outputs=(E_data,E_samples,loss,logZ,sig),
                                         on_unused_input='ignore')
     eval_function = theano.function(inputs=[X], outputs=(acc_01,acc_05,acc_07,recon_01,recon_05,recon_07))
 
