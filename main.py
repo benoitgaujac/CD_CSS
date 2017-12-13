@@ -231,7 +231,6 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     s = time.time()
                 i += 1
                 #updating annealed logq
-                print(np.average(Esamples))
                 if obj_fct=='CSSann' and np.average(Esamples)+n*log(2.0)<ANNEALED_THRESHOLD:
                     n += annealing_rate
 
