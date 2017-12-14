@@ -112,7 +112,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         logq = T.scalar(dtype=theano.config.floatX) #logq = -n*log(2) for uniform
         init_n = int(log(dataset.data['train'][0].shape[0])/log(2))
         nm_steps_tot = NUM_EPOCH*dataset.data['train'][0].shape[0]//batch_size
-        annealing_rate = nm_steps_tot//D # we bound the volume of the distribution
+        annealing_rate = 2*nm_steps_tot//D # we bound the volume of the distribution
         # Input tensor
         X = T.matrix()
         # Build Model
@@ -227,7 +227,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     print("train loss: {:.3e}, test loss: {:.3f}".format(float(Loss),float(loss[0])))
                     print("train acc: {:.3f}%, test acc: {:.3f}%".format(100.0*train_a[-1],100.0*test_a[-1]))
                     print("train sig: {:.3f}, test sig: {:.3f}".format(float(Sig),float(sig)))
-                    print("annealed logq: -{}xlog(2)\n".format(int(n)))
+                    if obj_fct=='CSSann':
+                        print("annealed logq: -{}xlog(2)\n".format(int(n)))
                     s = time.time()
                 i += 1
                 #updating annealed logq
