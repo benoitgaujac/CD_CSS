@@ -110,7 +110,8 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         true_x = dataset.data["test"][0][IND_RECON:IND_RECON+NUM_RECON]
         # Annealing logq
         logq = T.scalar(dtype=theano.config.floatX) #logq = -n*log(2) for uniform
-        init_n = int(log(dataset.data['train'][0].shape[0])/log(2))
+        #init_n = int(log(dataset.data['train'][0].shape[0])/log(2))
+        init_n = 0
         nm_steps_tot = NUM_EPOCH*dataset.data['train'][0].shape[0]//batch_size
         annealing_rate = 2*nm_steps_tot//D # we bound the volume of the distribution
         # Input tensor
