@@ -77,8 +77,8 @@ def css_objective(E_data, E_samples, logq, datasize, approx_grad=True):
     N = T.cast(E_data.shape[0] + E_samples.shape[0],theano.config.floatX)
 
     # Expand the energy for the Q samples
-    e_q = E_samples - logq - T.log(T.cast(E_samples.shape[0],theano.config.floatX)) #shape: (nsamples,1)
-    e_x = E_data + T.log(datasize) - T.log(T.cast(E_data.shape[0],theano.config.floatX)) #shape: (nbatch,1)
+    e_q = E_samples - logq - T.log(T.cast(E_samples.shape[0],theano.config.floatX)) - T.log(datasize) #shape: (nsamples,1)
+    e_x = E_data - T.log(T.cast(E_data.shape[0],theano.config.floatX)) #shape: (nbatch,1)
 
     # Concatenate energies
     e_p = T.concatenate((e_x, e_q), axis=0)
@@ -93,7 +93,7 @@ def css_objective(E_data, E_samples, logq, datasize, approx_grad=True):
     sqr_diff = T.sqr(N*T.exp(e_p)-T.exp(logZ-m))
     logsig = T.log(T.sum(sqr_diff)) + 2*m - 0.5*T.log(N-T.cast(1.0,theano.config.floatX))
 
-    return z_1 - logZ, logZ, logsig[0]
+    return z_1 - logZ - T.log(datasize), logZ, logsig[0]
 
 def css_hacked_objective(E_data, E_samples):
     """
