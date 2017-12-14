@@ -113,7 +113,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         #init_n = int(log(dataset.data['train'][0].shape[0])/log(2))
         init_n = 0
         nm_steps_tot = NUM_EPOCH*dataset.data['train'][0].shape[0]//batch_size
-        annealing_rate = nm_steps_tot/D # we bound the volume of the distribution
+        annealing_rate = D/nm_steps_tot # we bound the volume of the distribution
         # Input tensor
         X = T.matrix()
         # Build Model
@@ -233,7 +233,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     s = time.time()
                 i += 1
                 #updating annealed logq
-                if obj_fct=='CSSann' and np.average(Esamples)+n*log(2.0)<ANNEALED_THRESHOLD:
+                if obj_fct=='CSSann' and (np.average(Esamples)+n*log(2.0))<ANNEALED_THRESHOLD:
                     n += annealing_rate
 
         # Reconstructing images after training ends
