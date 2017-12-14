@@ -113,7 +113,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         #init_n = int(log(dataset.data['train'][0].shape[0])/log(2))
         init_n = 0
         nm_steps_tot = NUM_EPOCH*dataset.data['train'][0].shape[0]//batch_size
-        annealing_rate = nm_steps_tot//D # we bound the volume of the distribution
+        annealing_rate = nm_steps_tot/D # we bound the volume of the distribution
         # Input tensor
         X = T.matrix()
         # Build Model
@@ -155,7 +155,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
         n = init_n
         for epoch in range(num_epochs):
             for x, y in dataset.iter("train", batch_size):
-                Edata,Esamples,Loss,logZ,Sig = trainloss_f(x,-n*log(2.0))
+                Edata,Esamples,Loss,logZ,Sig = trainloss_f(x,-int(n)*log(2.0))
                 if i%LOG_FREQ==0:
                     # Compute params params norm
                     norm = [np.sum(W.get_value()**2)/float(W.get_value().size) for W in params]
@@ -170,7 +170,7 @@ def main(dataset, batch_size=BATCH_SIZE, num_epochs=NUM_EPOCH, energy_type='bolt
                     for x_test, y_test in dataset.iter("test", batch_size):
                         #edata,esamples,logq,l,logz,sig,esamples1000,logq1000,l1000,logz1000,sig1000,alte_samples,altloss,altlogz = testloss_f(x_test,prob_init*exp(i*log(decay_rate)))
                         #loss += np.array([l,l1000,altloss])
-                        edata,esamples,l,logz,sig = testloss_f(x_test,-n*log(2.0))
+                        edata,esamples,l,logz,sig = testloss_f(x_test,-int(n)*log(2.0))
                         loss += np.array([l])
                         acc1,acc5,acc7,_,_,_ = eval_f(x_test)
                         test_a += np.array([acc1,acc5,acc7])
