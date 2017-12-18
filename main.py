@@ -37,7 +37,7 @@ NUM_EPOCH = 10
 LOG_FREQ = 128
 NUM_RECON = 10
 IND_RECON = 2000
-LR = 0.0001
+LR = 0.00005
 ANNEALED_THRESHOLD = 1.0
 
 ######################################## Models architectures ########################################
