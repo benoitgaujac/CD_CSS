@@ -23,9 +23,10 @@ from models import build_model
 from energy_fct import net_energy, botlmzan_energy
 from utils import build_net
 
-objectives = ['CSSann','CSSnewM','CSS','CSSnew','IMP']
+#objectives = ['CSSann','CSSnewM','CSS','CSSnew','IMP']
+objectives = ['CSS','IMP']
 ene = ['CONV_net','boltzman']
-samp = ['uniform',]
+samp = ['taylor_uniform',]
 fractions = [0.1,0.5,0.7]
 
 NUM_SAMPLES = [1,] # Nb of sampling steps
@@ -306,6 +307,7 @@ if __name__ == "__main__":
         dataset.data[k] = ((0.5 < dataset.data[k][0][:-1]).astype(theano.config.floatX),dataset.data[k][1][:-1])
     dataset.data["train"] = (dataset.data["train"][0][:options.num_data],dataset.data["train"][1][:options.num_data])
 
+    """
     main(dataset,batch_size=options.BATCH_SIZE,
                 num_epochs=options.NUM_EPOCH,
                 energy_type=options.energy,
@@ -330,4 +332,3 @@ if __name__ == "__main__":
                                     obj_fct=ob,
                                     mode=options.mode,
                                     directory=options.dir)
-    """
